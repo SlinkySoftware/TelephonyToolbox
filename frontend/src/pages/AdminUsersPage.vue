@@ -124,6 +124,20 @@ SPDX-License-Identifier: GPL-3.0-only
           </div>
 
           <q-table :rows="filteredUsers" :columns="columns" row-key="id" flat :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
+            <template #body-cell-email="props">
+              <q-td :props="props">
+                <div class="row items-center no-wrap q-gutter-sm">
+                  <q-icon
+                    :name="props.row.is_active ? 'check_circle' : 'cancel'"
+                    :color="props.row.is_active ? 'positive' : 'negative'"
+                    :title="props.row.is_active ? 'Enabled user' : 'Disabled user'"
+                    size="18px"
+                  />
+                  <span>{{ props.value }}</span>
+                </div>
+              </q-td>
+            </template>
+
             <template #body-cell-groups="props">
               <q-td :props="props">{{ props.row.groups.map((group) => group.name).join(', ') || 'None' }}</q-td>
             </template>
