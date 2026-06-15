@@ -198,9 +198,12 @@ LDAP_USER_SEARCH_BASE=
 LDAP_USER_EMAIL_ATTRIBUTE=mail
 LDAP_USER_DISPLAY_NAME_ATTRIBUTE=displayName
 LDAP_USER_ENABLED_ATTRIBUTE=
+LDAP_GROUP_SEARCH_FILTER=
 ```
 
 `LDAP_USER_ENABLED_ATTRIBUTE` may be blank if enabled/disabled state is not available or not required.
+
+`LDAP_GROUP_SEARCH_FILTER` is optional. If specified, it restricts login to users matching the filter. Use `%email` as a placeholder for the user's email address (e.g. `(&(mail=%email)(memberOf=CN=TelephonyBoxUsers,OU=Groups,DC=example,DC=com))`). Leave blank to allow any valid LDAP user.
 
 ---
 

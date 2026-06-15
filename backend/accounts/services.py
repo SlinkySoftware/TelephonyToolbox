@@ -80,10 +80,20 @@ class LdapIdentityProvider:
         if settings.LDAP_USER_ENABLED_ATTRIBUTE:
             attributes.append(settings.LDAP_USER_ENABLED_ATTRIBUTE)
 
+        # Build LDAP search filter: either custom filter template (with %email placeholder)
+        # or default email-based search. The %email placeholder is replaced with the escaped
+        # email address to prevent LDAP injection attacks.
+        if settings.LDAP_GROUP_SEARCH_FILTER:
+            # Use custom group search filter with %email placeholder replaced
+            search_filter = settings.LDAP_GROUP_SEARCH_FILTER.replace('%email', escape_filter_chars(email))
+        else:
+            # Default: search by email attribute only
+            search_filter = f'({settings.LDAP_USER_EMAIL_ATTRIBUTE}={escape_filter_chars(email)})'
+
         with self._connect_as_service_account() as conn:
             conn.search(
                 settings.LDAP_USER_SEARCH_BASE,
-                f'({settings.LDAP_USER_EMAIL_ATTRIBUTE}={escape_filter_chars(email)})',
+                search_filter,
                 attributes=attributes,
             )
             if not conn.entries:
