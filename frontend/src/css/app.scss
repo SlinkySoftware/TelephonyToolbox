@@ -1,0 +1,225 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/fraunces/600.css';
+
+:root {
+	--tt-bg: #171411;
+	--tt-surface: rgba(32, 27, 23, 0.88);
+	--tt-surface-strong: #261f1a;
+	--tt-panel: rgba(250, 241, 228, 0.07);
+	--tt-border: rgba(244, 210, 159, 0.18);
+	--tt-text: #f7f0e7;
+	--tt-muted: #cfbda7;
+	--tt-accent: #ef9a48;
+	--tt-accent-soft: #ffd7ab;
+	--tt-danger: #ff8d73;
+	--tt-success: #8dd7a5;
+}
+
+body {
+	font-family: 'IBM Plex Sans', sans-serif;
+	background:
+		radial-gradient(circle at top left, rgba(239, 154, 72, 0.18), transparent 34%),
+		radial-gradient(circle at bottom right, rgba(255, 215, 171, 0.14), transparent 28%),
+		linear-gradient(145deg, #100d0b 0%, #171411 42%, #1b1611 100%);
+	color: var(--tt-text);
+}
+
+#q-app {
+	min-height: 100vh;
+}
+
+.app-shell {
+	background: transparent;
+}
+
+.app-header {
+	background: rgba(14, 11, 9, 0.92);
+	border-bottom: 1px solid var(--tt-border);
+	backdrop-filter: blur(20px);
+}
+
+.toolbar-pad {
+	padding: 0.8rem 1.2rem;
+}
+
+.brand-lockup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+}
+
+.brand-kicker,
+.drawer-kicker,
+.section-kicker {
+	color: var(--tt-accent-soft);
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+}
+
+.brand-title,
+.drawer-title,
+.page-title {
+	font-family: 'Fraunces', serif;
+}
+
+.brand-title {
+	font-size: 1.35rem;
+}
+
+.toolbar-meta {
+	text-align: right;
+	margin-right: 1rem;
+}
+
+.toolbar-role {
+	color: var(--tt-accent-soft);
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.16em;
+}
+
+.toolbar-user {
+	color: var(--tt-text);
+	font-weight: 600;
+}
+
+.logout-btn {
+	border: 1px solid var(--tt-border);
+	border-radius: 999px;
+	color: var(--tt-accent-soft);
+}
+
+.app-drawer {
+	background: rgba(18, 15, 13, 0.95);
+	color: var(--tt-text);
+	border-right: 1px solid var(--tt-border);
+}
+
+.drawer-top {
+	padding: 1.5rem 1.2rem 1rem;
+}
+
+.drawer-title {
+	font-size: 1.5rem;
+}
+
+.drawer-section {
+	color: var(--tt-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+}
+
+.nav-item {
+	margin: 0 0.8rem 0.5rem;
+	border-radius: 18px;
+	color: var(--tt-text);
+}
+
+.nav-item.q-router-link--active {
+	background: linear-gradient(135deg, rgba(239, 154, 72, 0.22), rgba(255, 215, 171, 0.12));
+	border: 1px solid var(--tt-border);
+}
+
+.page-stage {
+	padding: 1.2rem;
+}
+
+.page-frame {
+	max-width: 1400px;
+	margin: 0 auto;
+}
+
+.page-hero {
+	margin-bottom: 1.25rem;
+	padding: 1.6rem;
+	border: 1px solid var(--tt-border);
+	border-radius: 28px;
+	background: linear-gradient(180deg, rgba(42, 34, 28, 0.96), rgba(24, 20, 17, 0.9));
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+}
+
+.page-title {
+	margin: 0.25rem 0 0.35rem;
+	font-size: clamp(2rem, 4vw, 3.2rem);
+	line-height: 1;
+}
+
+.page-subtitle {
+	max-width: 56rem;
+	color: var(--tt-muted);
+	margin: 0;
+}
+
+.card-panel,
+.table-panel,
+.form-panel,
+.status-panel {
+	background: var(--tt-surface);
+	border: 1px solid var(--tt-border);
+	border-radius: 24px;
+	backdrop-filter: blur(18px);
+}
+
+.soft-grid {
+	display: grid;
+	gap: 1rem;
+}
+
+.metric-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1rem;
+}
+
+.metric-card {
+	padding: 1.1rem 1.2rem;
+}
+
+.metric-value {
+	font-size: 2rem;
+	font-weight: 600;
+}
+
+.muted-copy {
+	color: var(--tt-muted);
+}
+
+.warning-banner {
+	border-radius: 18px;
+	border: 1px solid rgba(255, 141, 115, 0.35);
+	background: rgba(92, 42, 28, 0.48);
+}
+
+.q-table {
+	background: transparent;
+	color: var(--tt-text);
+}
+
+.q-table th,
+.q-table td {
+	color: var(--tt-text);
+}
+
+.q-field--filled .q-field__control,
+.q-input .q-field__control,
+.q-select .q-field__control {
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.q-dialog__inner > div {
+	background: #211b17;
+	color: var(--tt-text);
+}
+
+@media (max-width: 767px) {
+	.page-stage {
+		padding: 0.75rem;
+	}
+
+	.page-hero {
+		padding: 1.2rem;
+	}
+}

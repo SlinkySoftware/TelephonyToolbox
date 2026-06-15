@@ -1,0 +1,15 @@
+[Unit]
+Description=Telephony Toolbox gunicorn service
+After=network.target
+
+[Service]
+User=<app-user>
+Group=<app-group>
+WorkingDirectory=<app-root>/backend
+EnvironmentFile=<env-file>
+ExecStart=<app-root>/.venv/bin/gunicorn telephony_toolbox.wsgi:application --bind unix:/run/telephony-toolbox-gunicorn.sock --workers 3 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,29 @@
+from dataclasses import dataclass, field
+
+
+@dataclass(slots=True)
+class CucmDirectoryNumber:
+    pattern: str
+    route_partition: str
+    call_forward_all_destination: str | None = None
+    calling_search_space: str | None = None
+    secondary_calling_search_space: str | None = None
+    raw_payload: dict = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class CucmUpdateResult:
+    success: bool
+    pattern: str
+    route_partition: str
+    returned_destination: str | None = None
+    message: str = ''
+    raw_payload: dict = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class CucmHealthResult:
+    available: bool
+    status: str
+    message: str = ''
+    version: str | None = None
