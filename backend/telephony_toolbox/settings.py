@@ -33,6 +33,14 @@ CUCM_AXL_VERIFY_TLS = env_bool('CUCM_AXL_VERIFY_TLS', True)
 
 AUDIT_RETENTION_DAYS = env_int('AUDIT_RETENTION_DAYS', 90)
 
+LOG_FILE = Path(env_str('DJANGO_LOG_FILE', str(BASE_DIR / 'logs' / 'telephony_toolbox.log')))
+LOG_LEVEL = env_str('DJANGO_LOG_LEVEL', 'INFO').upper()
+try:
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # If the file path is invalid or not writable, keep startup alive with console logs.
+    LOG_FILE = None
+
 ENTRA_CLIENT_ID = env_str('ENTRA_CLIENT_ID', '')
 ENTRA_CLIENT_SECRET = env_str('ENTRA_CLIENT_SECRET', '')
 ENTRA_TENANT_ID = env_str('ENTRA_TENANT_ID', '')
@@ -158,4 +166,43 @@ REQUIRED_CONFIGURATION = {
     'cucm': ['CUCM_AXL_HOST', 'CUCM_AXL_USERNAME', 'CUCM_AXL_PASSWORD', 'CUCM_AXL_VERSION'],
     'auth_entra': ['ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET', 'ENTRA_TENANT_ID', 'ENTRA_REDIRECT_URI'],
     'auth_ldap': ['LDAP_SERVER_URI', 'LDAP_BIND_DN', 'LDAP_BIND_PASSWORD', 'LDAP_USER_SEARCH_BASE'],
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_FILE) if LOG_FILE else str(BASE_DIR / 'telephony_toolbox.log'),
+            'maxBytes': env_int('DJANGO_LOG_MAX_BYTES', 5 * 1024 * 1024),
+            'backupCount': env_int('DJANGO_LOG_BACKUP_COUNT', 5),
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'telephony_toolbox': {
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
 }
