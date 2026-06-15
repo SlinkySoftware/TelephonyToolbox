@@ -59,6 +59,7 @@ class UpdateDestinationView(APIView):
         if status_code == 200:
             refreshed = Diversion.objects.select_related('group').get(pk=diversion.pk)
             payload['diversion'] = DiversionSerializer(refreshed).data
+            payload['diversion']['cucm_status'] = 'available'
         return Response(payload, status=status_code)
 
 
@@ -69,6 +70,7 @@ class RefreshDiversionView(APIView):
         if status_code == 200:
             refreshed = Diversion.objects.select_related('group').get(pk=diversion.pk)
             payload['diversion'] = DiversionSerializer(refreshed).data
+            payload['diversion']['cucm_status'] = 'available'
         return Response(payload, status=status_code)
 
 

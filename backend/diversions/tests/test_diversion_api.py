@@ -96,7 +96,27 @@ def test_diversion_update_success(monkeypatch, standard_client, standard_user_me
     diversion.refresh_from_db()
     assert response.status_code == 200
     assert response.json()['result'] == 'success'
+    assert response.json()['diversion']['cucm_status'] == 'available'
     assert diversion.cached_current_destination == '+61412345678'
+
+
+@pytest.mark.django_db
+def test_diversion_refresh_success_includes_available_cucm_status(
+    monkeypatch,
+    standard_client,
+    standard_user_membership,
+    diversion,
+):
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: SuccessfulCucmClient())
+
+    response = standard_client.post(
+        f'/api/diversions/{diversion.id}/refresh/',
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert response.json()['result'] == 'success'
+    assert response.json()['diversion']['cucm_status'] == 'available'
 
 
 @pytest.mark.django_db
