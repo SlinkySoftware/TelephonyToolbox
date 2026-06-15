@@ -5,6 +5,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from audit.services import AuditService
+from cucm.directory_numbers import directory_number_pattern_variants, normalise_directory_number_pattern
 from cucm.exceptions import CucmAuthenticationError, CucmNotFoundError, CucmUnavailableError
 from cucm.factory import get_cucm_client
 from dialplan.validators import validate_and_normalise_destination
@@ -57,7 +58,8 @@ def _cache_refresh(diversion: Diversion, destination: str, *, update_user=None, 
 class DiversionAdminService:
     @staticmethod
     def validate_source_number(source_number: str):
-        exists_in_app = Diversion.objects.filter(source_number=source_number).exists()
+        source_number = normalise_directory_number_pattern(source_number)
+        exists_in_app = Diversion.objects.filter(source_number__in=directory_number_pattern_variants(source_number)).exists()
         try:
             directory_number = get_cucm_client().get_directory_number(source_number, settings.CUCM_ROUTE_PARTITION)
         except CucmNotFoundError:

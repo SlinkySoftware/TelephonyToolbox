@@ -42,6 +42,15 @@ class MismatchCucmClient(SuccessfulCucmClient):
         return CucmUpdateResult(True, pattern, route_partition, returned_destination='+61299991234')
 
 
+class RecordingCucmClient(SuccessfulCucmClient):
+    def __init__(self):
+        self.patterns = []
+
+    def get_directory_number(self, pattern, route_partition):
+        self.patterns.append(pattern)
+        return super().get_directory_number(pattern, route_partition)
+
+
 @pytest.mark.django_db
 def test_standard_user_only_sees_assigned_diversions(standard_client, standard_user_membership, diversion, admin_user):
     other_group = AccessGroup.objects.create(name='Unrelated', description='Other team')
@@ -151,7 +160,24 @@ def test_admin_validate_source_returns_line_name(monkeypatch, admin_client):
     )
 
     assert response.status_code == 200
-    assert response.json()['line_name'] == 'Retail Support Main Line'
+    assert response.json()['line_name'] == 'Retail Support'
+
+
+@pytest.mark.django_db
+def test_admin_validate_source_strips_leading_escape(monkeypatch, admin_client):
+    cucm_client = RecordingCucmClient()
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: cucm_client)
+
+    response = admin_client.post(
+        '/api/admin/diversions/validate-source/',
+        {'source_number': '\\+61288836590'},
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert response.json()['source_number'] == '+61288836590'
+    assert response.json()['line_name'] == 'Retail Support'
+    assert cucm_client.patterns == ['+61288836590']
 
 
 @pytest.mark.django_db
@@ -171,3 +197,27 @@ def test_admin_diversion_create_returns_503_when_cucm_unavailable(monkeypatch, a
 
     assert response.status_code == 503
     assert response.json()['message'] == 'CUCM is currently unavailable.'
+
+
+@pytest.mark.django_db
+def test_admin_diversion_create_strips_leading_escape(monkeypatch, admin_client, access_group):
+    cucm_client = RecordingCucmClient()
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: cucm_client)
+
+    response = admin_client.post(
+        '/api/admin/diversions/',
+        {
+            'name': 'Retail Support',
+            'description': 'After-hours diversion',
+            'source_number': '\\+61288836590',
+            'group_id': str(access_group.id),
+        },
+        format='json',
+    )
+
+    diversion = Diversion.objects.get(pk=response.json()['id'])
+
+    assert response.status_code == 201
+    assert response.json()['source_number'] == '+61288836590'
+    assert diversion.source_number == '+61288836590'
+    assert cucm_client.patterns == ['+61288836590']

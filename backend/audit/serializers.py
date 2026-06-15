@@ -4,9 +4,15 @@
 from rest_framework import serializers
 
 from audit.models import AuditEvent
+from cucm.directory_numbers import normalise_directory_number_pattern
 
 
 class AuditEventSerializer(serializers.ModelSerializer):
+    source_number = serializers.SerializerMethodField()
+
+    def get_source_number(self, obj):
+        return normalise_directory_number_pattern(obj.source_number)
+
     class Meta:
         model = AuditEvent
         fields = (

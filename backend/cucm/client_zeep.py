@@ -3,6 +3,7 @@
 
 import ssl
 from pathlib import Path
+from types import SimpleNamespace
 
 import requests
 from django.conf import settings
@@ -15,6 +16,7 @@ from zeep.exceptions import Fault, TransportError
 from zeep.transports import Transport
 
 from cucm.client import CucmClient
+from cucm.directory_numbers import escape_directory_number_pattern, normalise_directory_number_pattern
 from cucm.exceptions import CucmAuthenticationError, CucmNotFoundError, CucmUnavailableError
 from cucm.schemas import CucmDirectoryNumber, CucmHealthResult, CucmUpdateResult
 
@@ -74,7 +76,8 @@ class ZeepCucmClient(CucmClient):
         return getattr(container, key, default)
 
     def _parse_line(self, response, pattern, route_partition):
-        line = self._field_value(response, 'return', {})
+        result = self._field_value(response, 'return', {})
+        line = self._field_value(result, 'line', None) or result
         call_forward_all = self._field_value(line, 'callForwardAll', {}) or {}
         description = self._field_value(line, 'description')
         alerting_name = self._field_value(line, 'alertingName')
@@ -99,17 +102,21 @@ class ZeepCucmClient(CucmClient):
             return None
         if isinstance(raw_value, str):
             return raw_value
-        value = getattr(raw_value, '_value_1', None)
-        if value:
+        marker = SimpleNamespace()
+        value = getattr(raw_value, '_value_1', marker)
+        if value is not marker:
             return value
         if isinstance(raw_value, dict):
-            return raw_value.get('_value_1') or raw_value.get('value')
+            if '_value_1' in raw_value:
+                return raw_value.get('_value_1')
+            return raw_value.get('value')
         return str(raw_value)
 
     def get_directory_number(self, pattern: str, route_partition: str) -> CucmDirectoryNumber:
+        pattern = normalise_directory_number_pattern(pattern)
         try:
             response = self._service.getLine(
-                pattern=pattern,
+                pattern=escape_directory_number_pattern(pattern),
                 routePartitionName=self._route_partition_fk(route_partition),
                 returnedTags={
                     'pattern': '',
@@ -137,17 +144,19 @@ class ZeepCucmClient(CucmClient):
         return self._parse_line(response, pattern, route_partition)
 
     def update_call_forward_all(self, pattern: str, route_partition: str, destination: str) -> CucmUpdateResult:
+        pattern = normalise_directory_number_pattern(pattern)
         current = self.get_directory_number(pattern, route_partition)
+        call_forward_all = {'destination': destination}
+        if current.calling_search_space:
+            call_forward_all['callingSearchSpaceName'] = self._route_partition_fk(current.calling_search_space)
+        if current.secondary_calling_search_space:
+            call_forward_all['secondaryCallingSearchSpaceName'] = self._route_partition_fk(current.secondary_calling_search_space)
 
         try:
             response = self._service.updateLine(
-                pattern=pattern,
+                pattern=escape_directory_number_pattern(pattern),
                 routePartitionName=self._route_partition_fk(route_partition),
-                callForwardAll={
-                    'callingSearchSpaceName': self._route_partition_fk(current.calling_search_space),
-                    'secondaryCallingSearchSpaceName': self._route_partition_fk(current.secondary_calling_search_space),
-                    'destination': destination,
-                },
+                callForwardAll=call_forward_all,
             )
         except Fault as exc:
             message = str(exc)

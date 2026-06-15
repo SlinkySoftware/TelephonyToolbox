@@ -18,7 +18,7 @@ class CucmDirectoryNumber:
 
     @property
     def line_name(self) -> str:
-        return self.description or self.alerting_name or self.ascii_alerting_name or self.pattern
+        return self.alerting_name or self.ascii_alerting_name or self.description or self.pattern
 
 
 @dataclass(slots=True)

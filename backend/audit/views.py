@@ -5,11 +5,13 @@ import csv
 import json
 
 from django.http import HttpResponse
+from django.db.models import Q
 from rest_framework.generics import ListAPIView
 
 from accounts.permissions import IsAppAdmin
 from audit.models import AuditEvent
 from audit.serializers import AuditEventSerializer
+from cucm.directory_numbers import directory_number_pattern_variants, normalise_directory_number_pattern
 
 
 class AuditQueryMixin:
@@ -39,7 +41,12 @@ class AuditQueryMixin:
             queryset = queryset.filter(object_type=object_type)
         source_number = params.get('source_number')
         if source_number:
-            queryset = queryset.filter(source_number__icontains=source_number)
+            normalised_source_number = normalise_directory_number_pattern(source_number)
+            patterns = directory_number_pattern_variants(normalised_source_number)
+            source_number_query = Q(source_number__icontains=patterns[0])
+            for pattern in patterns[1:]:
+                source_number_query |= Q(source_number__icontains=pattern)
+            queryset = queryset.filter(source_number_query)
         destination_number = params.get('destination_number')
         if destination_number:
             queryset = queryset.filter(destination_number__icontains=destination_number)
@@ -90,7 +97,7 @@ class AuditExportCsvView(AuditQueryMixin, ListAPIView):
                     event.object_type,
                     event.object_id_text,
                     event.object_name,
-                    event.source_number,
+                    normalise_directory_number_pattern(event.source_number),
                     event.destination_number,
                     event.message,
                     json.dumps(event.metadata_json),
