@@ -8,11 +8,18 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">Update Forwarding</div>
       <h1 class="page-title">{{ diversion?.name || 'Edit Diversion' }}</h1>
-      <p class="page-subtitle">Validate and normalise the destination before CUCM is updated. The application only reports clean success after read-back confirmation.</p>
+      <p class="page-subtitle">
+        Enter a destination and confirm the update. The application validates and normalises the
+        number before CUCM is updated, then reports success only after read-back confirmation.
+      </p>
     </section>
 
-    <q-banner v-if="diversion?.cucm_status !== 'available'" class="warning-banner text-white q-pa-md">
-      CUCM is currently unavailable. Cached diversion information is displayed and updates are temporarily disabled.
+    <q-banner
+      v-if="diversion?.cucm_status !== 'available'"
+      class="warning-banner text-white q-pa-md"
+    >
+      CUCM is currently unavailable. Cached diversion information is displayed and updates are
+      temporarily disabled.
     </q-banner>
 
     <div class="row q-col-gutter-lg">
@@ -31,7 +38,13 @@ SPDX-License-Identifier: GPL-3.0-only
       <div class="col-12 col-lg-7">
         <section class="form-panel q-pa-lg">
           <q-form class="q-gutter-md" @submit.prevent="prepareUpdate">
-            <q-input v-model="destination" filled label="New destination" hint="Australian FNN, mobile or +E.164 only" />
+            <q-input
+              v-model="destination"
+              filled
+              label="New destination"
+              hint="Australian FNN, mobile or +E.164 only"
+              @update:model-value="handleDestinationInput"
+            />
 
             <div v-if="validationResult" class="status-panel q-pa-md">
               <div class="text-subtitle2 text-orange-2">Validation result</div>
@@ -43,8 +56,14 @@ SPDX-License-Identifier: GPL-3.0-only
             </div>
 
             <div class="row q-gutter-sm">
-              <q-btn outline color="orange-3" label="Validate" @click="runValidation" :loading="validating" />
-              <q-btn color="orange-6" text-color="black" label="Save diversion" type="submit" :disable="diversion?.cucm_status !== 'available'" :loading="saving" />
+              <q-btn
+                color="orange-6"
+                text-color="black"
+                label="Save diversion"
+                type="submit"
+                :disable="diversion?.cucm_status !== 'available'"
+                :loading="validating || saving"
+              />
               <q-btn flat color="grey-4" label="Back" @click="router.push('/diversions')" />
             </div>
           </q-form>
@@ -61,7 +80,9 @@ SPDX-License-Identifier: GPL-3.0-only
           <div><strong>Diversion:</strong> {{ diversion?.name }}</div>
           <div><strong>Source DN:</strong> {{ diversion?.source_number }}</div>
           <div><strong>Entered destination:</strong> {{ destination }}</div>
-          <div><strong>Normalised destination:</strong> {{ validationResult?.normalised_destination }}</div>
+          <div>
+            <strong>Normalised destination:</strong> {{ validationResult?.normalised_destination }}
+          </div>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
@@ -77,7 +98,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 
-import { getDiversion, updateDiversionDestination, validateDiversionDestination } from 'src/services/toolboxApi'
+import {
+  getDiversion,
+  updateDiversionDestination,
+  validateDiversionDestination,
+} from 'src/services/toolboxApi'
 import { extractApiMessage, formatDateTime } from 'src/utils/format'
 
 const props = defineProps({
@@ -101,11 +126,17 @@ const validationSummary = computed(() => {
   if (!validationResult.value) {
     return ''
   }
-  return validationResult.value.is_valid ? validationResult.value.normalised_destination : validationResult.value.message
+  return validationResult.value.is_valid
+    ? validationResult.value.normalised_destination
+    : validationResult.value.message
 })
 
 async function loadDiversion() {
   diversion.value = await getDiversion(props.id)
+}
+
+function handleDestinationInput() {
+  validationResult.value = null
 }
 
 async function runValidation() {
@@ -114,7 +145,10 @@ async function runValidation() {
     validationResult.value = await validateDiversionDestination(props.id, destination.value)
   } catch (error) {
     validationResult.value = error.response?.data || null
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Destination validation failed.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Destination validation failed.'),
+    })
   } finally {
     validating.value = false
   }
@@ -136,7 +170,10 @@ async function saveUpdate() {
     $q.notify({ type: 'positive', message: response.message || 'Diversion updated successfully.' })
     await router.replace('/diversions')
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to update diversion.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to update diversion.'),
+    })
   } finally {
     saving.value = false
   }
@@ -146,7 +183,10 @@ onMounted(async () => {
   try {
     await loadDiversion()
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to load diversion details.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to load diversion details.'),
+    })
     await router.replace('/diversions')
   }
 })

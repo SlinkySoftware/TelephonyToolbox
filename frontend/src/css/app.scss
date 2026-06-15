@@ -10,6 +10,10 @@
 
 :root {
   --tt-bg: #171411;
+  --tt-bg-gradient:
+    radial-gradient(circle at top left, rgba(239, 154, 72, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 215, 171, 0.14), transparent 28%),
+    linear-gradient(145deg, #100d0b 0%, #171411 42%, #1b1611 100%);
   --tt-surface: rgba(32, 27, 23, 0.88);
   --tt-surface-strong: #261f1a;
   --tt-panel: rgba(250, 241, 228, 0.07);
@@ -22,20 +26,30 @@
   --tt-success: #8dd7a5;
 }
 
+html,
+body,
+body.q-body--dialog,
+body.q-body--prevent-scroll {
+  background-color: var(--tt-bg);
+  background-image: var(--tt-bg-gradient);
+}
+
 body {
   font-family: 'IBM Plex Sans', sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(239, 154, 72, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(255, 215, 171, 0.14), transparent 28%),
-    linear-gradient(145deg, #100d0b 0%, #171411 42%, #1b1611 100%);
   color: var(--tt-text);
 }
 
 #q-app {
   min-height: 100vh;
+  background: transparent;
 }
 
 .app-shell {
+  background: transparent;
+}
+
+.q-layout,
+.q-page-container {
   background: transparent;
 }
 
@@ -335,6 +349,10 @@ body {
 .q-dialog__inner > div {
   background: #211b17;
   color: var(--tt-text);
+}
+
+.q-dialog__backdrop {
+  background: rgba(12, 9, 7, 0.78);
 }
 
 @media (max-width: 767px) {
