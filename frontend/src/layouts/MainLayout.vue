@@ -9,9 +9,15 @@ SPDX-License-Identifier: GPL-3.0-only
       <q-toolbar class="toolbar-pad">
         <q-btn flat round dense icon="menu" class="lt-md text-sand" @click="toggleLeftDrawer" />
 
-        <div class="brand-lockup">
-          <div class="brand-kicker">Telephony Operations</div>
-          <div class="brand-title">Telephony Toolbox</div>
+        <div class="header-brand">
+          <div class="header-logo-wrap">
+            <img src="/images/header-logo.png" alt="Telephony Toolbox" class="header-logo" />
+          </div>
+
+          <div class="brand-lockup">
+            <div class="brand-kicker">Telephony Operations</div>
+            <div class="brand-title">Telephony Toolbox</div>
+          </div>
         </div>
 
         <q-space />
@@ -32,7 +38,14 @@ SPDX-License-Identifier: GPL-3.0-only
       </div>
 
       <q-list class="drawer-list">
-        <q-item v-for="item in primaryLinks" :key="item.to" clickable :to="item.to" exact class="nav-item">
+        <q-item
+          v-for="item in primaryLinks"
+          :key="item.to"
+          clickable
+          :to="item.to"
+          exact
+          class="nav-item"
+        >
           <q-item-section avatar>
             <q-icon :name="item.icon" />
           </q-item-section>
@@ -47,7 +60,14 @@ SPDX-License-Identifier: GPL-3.0-only
 
       <q-list v-if="adminLinks.length" class="drawer-list">
         <q-item-label header class="drawer-section">Admin</q-item-label>
-        <q-item v-for="item in adminLinks" :key="item.to" clickable :to="item.to" exact class="nav-item">
+        <q-item
+          v-for="item in adminLinks"
+          :key="item.to"
+          clickable
+          :to="item.to"
+          exact
+          class="nav-item"
+        >
           <q-item-section avatar>
             <q-icon :name="item.icon" />
           </q-item-section>
@@ -90,15 +110,42 @@ const adminLinks = computed(() => {
 
   return [
     { to: '/admin', label: 'Dashboard', caption: 'Operational summary', icon: 'space_dashboard' },
-    { to: '/admin/users', label: 'Users', caption: 'Provision and retire operators', icon: 'badge' },
-    { to: '/admin/groups', label: 'Groups', caption: 'Manage local access boundaries', icon: 'groups_2' },
-    { to: '/admin/diversions', label: 'Diversions', caption: 'Create and assign source numbers', icon: 'phone_forwarded' },
-    { to: '/admin/audit', label: 'Audit Log', caption: 'Export operational history', icon: 'history_edu' },
-    { to: '/admin/health', label: 'System Health', caption: 'Inspect database, auth and CUCM status', icon: 'monitor_heart' },
+    {
+      to: '/admin/users',
+      label: 'Users',
+      caption: 'Provision and retire operators',
+      icon: 'badge',
+    },
+    {
+      to: '/admin/groups',
+      label: 'Groups',
+      caption: 'Manage local access boundaries',
+      icon: 'groups_2',
+    },
+    {
+      to: '/admin/diversions',
+      label: 'Diversions',
+      caption: 'Create and assign source numbers',
+      icon: 'phone_forwarded',
+    },
+    {
+      to: '/admin/audit',
+      label: 'Audit Log',
+      caption: 'Export operational history',
+      icon: 'history_edu',
+    },
+    {
+      to: '/admin/health',
+      label: 'System Health',
+      caption: 'Inspect database, auth and CUCM status',
+      icon: 'monitor_heart',
+    },
   ]
 })
 
-const roleLabel = computed(() => (session.user?.role === 'app_admin' ? 'App Admin' : 'Standard User'))
+const roleLabel = computed(() =>
+  session.user?.role === 'app_admin' ? 'App Admin' : 'Standard User',
+)
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value
