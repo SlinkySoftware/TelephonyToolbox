@@ -267,16 +267,18 @@ onMounted(async () => {
     drop-shadow(0 0 28px rgba(239, 154, 72, 0.16));
   -webkit-mask-image: radial-gradient(
     ellipse at center,
-    #000 68%,
-    rgba(0, 0, 0, 0.92) 79%,
-    rgba(0, 0, 0, 0.46) 90%,
+    #000 58%,
+    rgba(0, 0, 0, 0.86) 70%,
+    rgba(0, 0, 0, 0.32) 84%,
+    rgba(0, 0, 0, 0.1) 92%,
     transparent 100%
   );
   mask-image: radial-gradient(
     ellipse at center,
-    #000 68%,
-    rgba(0, 0, 0, 0.92) 79%,
-    rgba(0, 0, 0, 0.46) 90%,
+    #000 58%,
+    rgba(0, 0, 0, 0.86) 70%,
+    rgba(0, 0, 0, 0.32) 84%,
+    rgba(0, 0, 0, 0.1) 92%,
     transparent 100%
   );
 }
