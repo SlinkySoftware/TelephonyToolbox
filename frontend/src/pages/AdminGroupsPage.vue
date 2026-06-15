@@ -15,11 +15,24 @@ SPDX-License-Identifier: GPL-3.0-only
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg">
           <div class="text-subtitle2 text-orange-2">{{ editingId ? 'Edit group' : 'Create group' }}</div>
-          <q-form class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveGroup">
-            <q-input v-model="form.name" filled label="Group name" />
+          <q-form ref="groupFormRef" class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveGroup">
+            <q-input
+              v-model="form.name"
+              filled
+              label="Group name"
+              maxlength="255"
+              :rules="[groupNameRule]"
+              lazy-rules="ondemand"
+            />
             <q-input v-model="form.description" filled type="textarea" autogrow label="Description" />
             <div class="row q-gutter-sm">
-              <q-btn color="orange-6" text-color="black" :label="editingId ? 'Update group' : 'Create group'" type="submit" />
+              <q-btn
+                color="orange-6"
+                text-color="black"
+                :label="editingId ? 'Update group' : 'Create group'"
+                type="submit"
+                :disable="!canSubmitGroup"
+              />
               <q-btn flat color="grey-4" label="Reset" @click="resetForm" />
             </div>
           </q-form>
@@ -43,7 +56,7 @@ SPDX-License-Identifier: GPL-3.0-only
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useQuasar } from 'quasar'
 
 import { createGroup, deleteGroup, listGroups, updateGroup } from 'src/services/toolboxApi'
@@ -53,7 +66,12 @@ const $q = useQuasar()
 
 const groups = ref([])
 const editingId = ref('')
+const groupFormRef = ref(null)
 const form = ref({ name: '', description: '' })
+const trimmedGroupName = computed(() => form.value.name.trim())
+const canSubmitGroup = computed(() => Boolean(trimmedGroupName.value))
+
+const groupNameRule = (value) => Boolean(String(value || '').trim()) || 'Group name is required.'
 
 const columns = [
   { name: 'name', label: 'Name', field: 'name', align: 'left' },
@@ -66,11 +84,13 @@ const columns = [
 function resetForm() {
   editingId.value = ''
   form.value = { name: '', description: '' }
+  groupFormRef.value?.resetValidation()
 }
 
 function beginEdit(group) {
   editingId.value = group.id
   form.value = { name: group.name, description: group.description }
+  groupFormRef.value?.resetValidation()
 }
 
 async function loadGroups() {
@@ -78,12 +98,22 @@ async function loadGroups() {
 }
 
 async function handleSaveGroup() {
+  const isValid = await groupFormRef.value?.validate()
+  if (isValid === false) {
+    return
+  }
+
+  const payload = {
+    ...form.value,
+    name: trimmedGroupName.value,
+  }
+
   try {
     if (editingId.value) {
-      await updateGroup(editingId.value, form.value)
+      await updateGroup(editingId.value, payload)
       $q.notify({ type: 'positive', message: 'Group updated.' })
     } else {
-      await createGroup(form.value)
+      await createGroup(payload)
       $q.notify({ type: 'positive', message: 'Group created.' })
     }
     resetForm()
