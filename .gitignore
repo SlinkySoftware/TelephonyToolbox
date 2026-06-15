@@ -8,3 +8,4 @@ frontend/dist/
 frontend/.quasar/
 frontend/.q-cache/
 *.log
+.env
