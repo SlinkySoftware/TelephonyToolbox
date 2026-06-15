@@ -117,6 +117,10 @@ body {
 	letter-spacing: 0.12em;
 }
 
+.drawer-list .q-item__label--caption {
+	color: rgb(240, 180, 120);
+}
+
 .nav-item {
 	margin: 0 0.8rem 0.5rem;
 	border-radius: 18px;
@@ -203,15 +207,64 @@ body {
 	color: var(--tt-text);
 }
 
+.q-table__container,
+.q-table__middle,
+.q-table thead,
+.q-table tbody,
+.q-table tr,
+.q-table__bottom {
+	background: rgba(38, 31, 26, 0.88);
+}
+
+.q-table tbody tr:nth-child(2n) {
+	background: rgba(26, 22, 18, 0.92);
+}
+
 .q-table th,
 .q-table td {
+	color: var(--tt-text);
+}
+
+.q-table th {
+	font-weight: 700;
+	color: var(--tt-accent-soft);
+	letter-spacing: 0.01em;
+}
+
+.q-table__bottom,
+.q-table__bottom .q-btn,
+.q-table__bottom .q-icon,
+.q-table__control,
+.q-table__separator,
+.q-table__bottom-item,
+.q-table__bottom-nodata,
+.q-table__bottom-nodata-icon,
+.q-table__message,
+.q-table .q-table__bottom .q-field__native,
+.q-table .q-table__bottom .q-field__input {
 	color: var(--tt-text);
 }
 
 .q-field--filled .q-field__control,
 .q-input .q-field__control,
 .q-select .q-field__control {
-	background: rgba(255, 255, 255, 0.04);
+	background: rgba(89, 110, 79, 0.28);
+}
+
+.q-field__native,
+.q-field__input,
+.q-field__prefix,
+.q-field__suffix,
+.q-field__marginal,
+.q-field__label {
+	color: var(--tt-text);
+}
+
+.q-field__bottom,
+.q-field__messages,
+.q-field__messages div,
+.q-field__counter {
+	color: #d2b28f;
 }
 
 .q-dialog__inner > div {

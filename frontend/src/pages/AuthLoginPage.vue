@@ -4,7 +4,7 @@ SPDX-License-Identifier: GPL-3.0-only
 -->
 
 <template>
-  <q-page class="row items-center justify-center q-pa-md">
+  <div class="login-page-shell row items-center justify-center q-pa-md">
     <div class="login-grid">
       <section class="page-hero hero-side">
         <div class="section-kicker">Operational Console</div>
@@ -69,7 +69,7 @@ SPDX-License-Identifier: GPL-3.0-only
         </div>
       </section>
     </div>
-  </q-page>
+  </div>
 </template>
 
 <script setup>
@@ -153,6 +153,11 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.8fr);
   gap: 1rem;
+}
+
+.login-page-shell {
+  min-height: 100vh;
+  width: 100%;
 }
 
 .hero-side {
