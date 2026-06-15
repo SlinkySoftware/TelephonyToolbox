@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from access_groups.models import AccessGroup
 from accounts.permissions import IsAppAdmin
 from audit.services import AuditService
+from cucm.exceptions import CucmAuthenticationError, CucmUnavailableError
 from diversions.models import Diversion
 from diversions.permissions import visible_diversions_queryset
 from diversions.serializers import (
@@ -86,7 +87,10 @@ class AdminDiversionListCreateView(APIView):
         serializer = AdminDiversionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
-        validation = DiversionAdminService.validate_source_number(payload['source_number'])
+        try:
+            validation = DiversionAdminService.validate_source_number(payload['source_number'])
+        except (CucmUnavailableError, CucmAuthenticationError):
+            return Response({'message': 'CUCM is currently unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         if not validation['exists_in_cucm']:
             return Response({'message': 'Source number was not found in CUCM.'}, status=status.HTTP_400_BAD_REQUEST)
         if validation['already_exists_in_app']:
@@ -126,7 +130,7 @@ class AdminDiversionValidateSourceView(APIView):
         payload = serializer.validated_data
         try:
             result = DiversionAdminService.validate_source_number(payload['source_number'])
-        except Exception:
+        except (CucmUnavailableError, CucmAuthenticationError):
             return Response({'message': 'CUCM is currently unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         AuditService.record_event(

@@ -27,6 +27,9 @@ class SuccessfulCucmClient:
 
 
 class UnavailableCucmClient(SuccessfulCucmClient):
+    def get_directory_number(self, pattern, route_partition):
+        raise CucmUnavailableError('CUCM unavailable')
+
     def update_call_forward_all(self, pattern, route_partition, destination):
         raise CucmUnavailableError('CUCM unavailable')
 
@@ -118,3 +121,36 @@ def test_diversion_delete_removes_local_record_only(admin_client, diversion):
 
     assert response.status_code == 204
     assert Diversion.objects.filter(pk=diversion.id).exists() is False
+
+
+@pytest.mark.django_db
+def test_admin_validate_source_returns_503_when_cucm_unavailable(monkeypatch, admin_client):
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: UnavailableCucmClient())
+
+    response = admin_client.post(
+        '/api/admin/diversions/validate-source/',
+        {'source_number': '0299990000'},
+        format='json',
+    )
+
+    assert response.status_code == 503
+    assert response.json()['message'] == 'CUCM is currently unavailable.'
+
+
+@pytest.mark.django_db
+def test_admin_diversion_create_returns_503_when_cucm_unavailable(monkeypatch, admin_client, access_group):
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: UnavailableCucmClient())
+
+    response = admin_client.post(
+        '/api/admin/diversions/',
+        {
+            'name': 'Retail Support Main Line',
+            'description': 'After-hours diversion',
+            'source_number': '0299990000',
+            'group_id': str(access_group.id),
+        },
+        format='json',
+    )
+
+    assert response.status_code == 503
+    assert response.json()['message'] == 'CUCM is currently unavailable.'

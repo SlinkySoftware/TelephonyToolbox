@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Copyright 2026, Slinky Software
 # SPDX-License-Identifier: GPL-3.0-only
 
+import ssl
 from pathlib import Path
 
 import requests
 from django.conf import settings
 from requests import Session
 from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from requests.exceptions import RequestException
 from zeep import Client, Settings as ZeepSettings
 from zeep.exceptions import Fault, TransportError
 from zeep.transports import Transport
@@ -14,6 +17,22 @@ from zeep.transports import Transport
 from cucm.client import CucmClient
 from cucm.exceptions import CucmAuthenticationError, CucmNotFoundError, CucmUnavailableError
 from cucm.schemas import CucmDirectoryNumber, CucmHealthResult, CucmUpdateResult
+
+
+class LegacyCucmTlsAdapter(HTTPAdapter):
+    def __init__(self, ciphers: str, **kwargs):
+        self._ssl_context = ssl.create_default_context()
+        self._ssl_context.set_ciphers(ciphers)
+        self._ssl_context.check_hostname = False
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        pool_kwargs['ssl_context'] = self._ssl_context
+        return super().init_poolmanager(connections, maxsize, block=block, **pool_kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        proxy_kwargs['ssl_context'] = self._ssl_context
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
 
 
 class ZeepCucmClient(CucmClient):
@@ -27,24 +46,39 @@ class ZeepCucmClient(CucmClient):
 
     def _build_service(self):
         wsdl_path = Path(settings.REPO_ROOT) / 'wsdl' / self.version / 'AXLAPI.wsdl'
-        session: Session = requests.Session()
-        session.auth = HTTPBasicAuth(self.username, self.password)
-        session.verify = settings.CUCM_AXL_VERIFY_TLS
+        session = self._build_session()
         transport = Transport(session=session, timeout=30)
         client = Client(str(wsdl_path), transport=transport, settings=ZeepSettings(strict=False, xml_huge_tree=True))
         return client.create_service('{http://www.cisco.com/AXLAPIService/}AXLAPIBinding', f'https://{self.host}:8443/axl/')
+
+    def _build_session(self) -> Session:
+        session: Session = requests.Session()
+        session.auth = HTTPBasicAuth(self.username, self.password)
+        session.verify = settings.CUCM_AXL_VERIFY_TLS
+        self._configure_session(session)
+        return session
+
+    def _configure_session(self, session: Session) -> None:
+        return None
 
     def _route_partition_fk(self, value):
         if not value:
             return None
         return {'_value_1': value}
 
+    def _field_value(self, container, key, default=None):
+        if container is None:
+            return default
+        if isinstance(container, dict):
+            return container.get(key, default)
+        return getattr(container, key, default)
+
     def _parse_line(self, response, pattern, route_partition):
-        line = getattr(response, 'return', None) or response.get('return', {})
-        call_forward_all = getattr(line, 'callForwardAll', None) or line.get('callForwardAll') or {}
-        destination = getattr(call_forward_all, 'destination', None) or call_forward_all.get('destination')
-        css = getattr(call_forward_all, 'callingSearchSpaceName', None) or call_forward_all.get('callingSearchSpaceName')
-        secondary_css = getattr(call_forward_all, 'secondaryCallingSearchSpaceName', None) or call_forward_all.get('secondaryCallingSearchSpaceName')
+        line = self._field_value(response, 'return', {})
+        call_forward_all = self._field_value(line, 'callForwardAll', {}) or {}
+        destination = self._field_value(call_forward_all, 'destination')
+        css = self._field_value(call_forward_all, 'callingSearchSpaceName')
+        secondary_css = self._field_value(call_forward_all, 'secondaryCallingSearchSpaceName')
         return CucmDirectoryNumber(
             pattern=pattern,
             route_partition=route_partition,
@@ -88,7 +122,7 @@ class ZeepCucmClient(CucmClient):
             if '401' in message or 'Unauthorized' in message:
                 raise CucmAuthenticationError(message) from exc
             raise CucmUnavailableError(message) from exc
-        except TransportError as exc:
+        except (TransportError, RequestException) as exc:
             raise CucmUnavailableError(str(exc)) from exc
 
         return self._parse_line(response, pattern, route_partition)
@@ -111,7 +145,7 @@ class ZeepCucmClient(CucmClient):
             if '401' in message or 'Unauthorized' in message:
                 raise CucmAuthenticationError(message) from exc
             raise CucmUnavailableError(message) from exc
-        except TransportError as exc:
+        except (TransportError, RequestException) as exc:
             raise CucmUnavailableError(str(exc)) from exc
 
         refreshed = self.get_directory_number(pattern, route_partition)
@@ -132,7 +166,7 @@ class ZeepCucmClient(CucmClient):
             if '401' in message or 'Unauthorized' in message:
                 raise CucmAuthenticationError(message) from exc
             raise CucmUnavailableError(message) from exc
-        except TransportError as exc:
+        except (TransportError, RequestException) as exc:
             raise CucmUnavailableError(str(exc)) from exc
 
         version = getattr(getattr(response, 'return', None), 'componentVersion', None)
