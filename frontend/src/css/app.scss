@@ -134,11 +134,17 @@ body {
 
 .page-stage {
 	padding: 1.2rem;
+	box-sizing: border-box;
 }
 
 .page-frame {
 	max-width: 1400px;
 	margin: 0 auto;
+}
+
+/* Quasar computes q-page min-height from layout height; subtract stage padding to avoid a persistent tiny overflow. */
+.q-page.page-frame {
+	min-height: calc(100% - 1.2rem) !important;
 }
 
 .page-hero {
@@ -245,6 +251,30 @@ body {
 	color: var(--tt-text);
 }
 
+.q-table__bottom .q-field__control {
+	background: rgba(38, 31, 26, 0.92);
+	border: 1px solid var(--tt-border);
+}
+
+.q-table__bottom .q-select__dropdown-icon {
+	color: var(--tt-accent-soft);
+}
+
+.q-menu {
+	background: rgba(38, 31, 26, 0.98);
+	color: var(--tt-text);
+	border: 1px solid var(--tt-border);
+}
+
+.q-menu .q-item {
+	color: var(--tt-text);
+}
+
+.q-menu .q-item.q-manual-focusable--focused,
+.q-menu .q-item.q-item--active {
+	background: rgba(239, 154, 72, 0.2);
+}
+
 .q-field--filled .q-field__control,
 .q-input .q-field__control,
 .q-select .q-field__control {
@@ -275,6 +305,10 @@ body {
 @media (max-width: 767px) {
 	.page-stage {
 		padding: 0.75rem;
+	}
+
+	.q-page.page-frame {
+		min-height: calc(100% - 0.75rem) !important;
 	}
 
 	.page-hero {

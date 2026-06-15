@@ -25,7 +25,7 @@ SPDX-License-Identifier: GPL-3.0-only
     </section>
 
     <section class="table-panel q-pa-lg">
-      <q-table :rows="rows" :columns="columns" row-key="id" flat :loading="loading" :pagination="{ rowsPerPage: 10 }">
+      <q-table :rows="rows" :columns="columns" row-key="id" flat :loading="loading" :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
         <template #body-cell-timestamp="props">
           <q-td :props="props">{{ formatDateTime(props.row.timestamp) }}</q-td>
         </template>

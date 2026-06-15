@@ -31,6 +31,7 @@ SPDX-License-Identifier: GPL-3.0-only
         :columns="columns"
         row-key="id"
         :loading="loading"
+        :rows-per-page-options="[10, 20, 50, 0]"
         :pagination="{ rowsPerPage: 10 }"
       >
         <template #body-cell-last_refreshed_at="props">

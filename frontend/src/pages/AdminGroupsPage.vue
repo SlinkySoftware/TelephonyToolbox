@@ -28,7 +28,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
       <div class="col-12 col-lg-8">
         <section class="table-panel q-pa-lg">
-          <q-table :rows="groups" :columns="columns" row-key="id" flat :pagination="{ rowsPerPage: 8 }">
+          <q-table :rows="groups" :columns="columns" row-key="id" flat :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
             <template #body-cell-actions="props">
               <q-td :props="props" class="q-gutter-sm">
                 <q-btn flat round dense icon="edit" color="orange-3" @click="beginEdit(props.row)" />

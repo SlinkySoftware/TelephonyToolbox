@@ -12,7 +12,7 @@ SPDX-License-Identifier: GPL-3.0-only
     </section>
 
     <div class="row q-col-gutter-lg">
-      <div class="col-12 col-xl-4">
+      <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg soft-grid">
           <div>
             <div class="text-subtitle2 text-orange-2">Validate external user</div>
@@ -50,7 +50,7 @@ SPDX-License-Identifier: GPL-3.0-only
         </section>
       </div>
 
-      <div class="col-12 col-xl-8">
+      <div class="col-12 col-lg-8">
         <section class="table-panel q-pa-lg">
           <div class="row items-center q-col-gutter-md q-mb-md">
             <div class="col">
@@ -61,7 +61,7 @@ SPDX-License-Identifier: GPL-3.0-only
             </div>
           </div>
 
-          <q-table :rows="filteredUsers" :columns="columns" row-key="id" flat :pagination="{ rowsPerPage: 8 }">
+          <q-table :rows="filteredUsers" :columns="columns" row-key="id" flat :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
             <template #body-cell-groups="props">
               <q-td :props="props">{{ props.row.groups.map((group) => group.name).join(', ') || 'None' }}</q-td>
             </template>
