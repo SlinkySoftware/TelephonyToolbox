@@ -3,10 +3,12 @@
 
 from pathlib import Path
 
-from telephony_toolbox.env import env_bool, env_int, env_list, env_str
+from telephony_toolbox.env import env_bool, env_int, env_list, env_str, load_env_file
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_ROOT = BASE_DIR.parent
+
+load_env_file(REPO_ROOT / '.env')
 
 SECRET_KEY = env_str('DJANGO_SECRET_KEY', 'telephony-toolbox-dev-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', True)
@@ -142,6 +144,7 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS', '')
 
 REQUIRED_CONFIGURATION = {
     'database': ['DATABASE_NAME', 'DATABASE_USER', 'DATABASE_PASSWORD', 'DATABASE_HOST'],
