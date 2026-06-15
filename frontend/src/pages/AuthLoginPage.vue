@@ -5,75 +5,60 @@ SPDX-License-Identifier: GPL-3.0-only
 
 <template>
   <div class="login-page-shell row items-center justify-center q-pa-md">
-    <div class="login-grid">
-      <section class="page-hero hero-side">
-        <div class="section-kicker">Operational Console</div>
-        <h1 class="page-title">Forwarding changes without roulette.</h1>
-        <p class="page-subtitle">
-          Telephony Toolbox keeps diversion control narrow, auditable and anchored to live CUCM state.
-        </p>
+    <section class="form-panel q-pa-xl login-card">
+      <div class="section-kicker">Sign In</div>
+      <div class="text-h5 q-mt-sm">Access the control surface</div>
+      <p class="muted-copy q-mt-sm">
+        Select the authentication method available for this deployment, then continue with the matching sign-in flow.
+      </p>
 
-        <div class="soft-grid hero-notes q-mt-xl">
-          <div class="status-panel q-pa-lg">
-            <div class="text-overline text-orange-3">Source of truth</div>
-            <div class="text-h6 q-mt-sm">Cisco UCM decides the real forwarding state.</div>
-            <div class="muted-copy q-mt-sm">The app validates, writes, reads back, and only reports clean success on a verified match.</div>
-          </div>
-          <div class="status-panel q-pa-lg">
-            <div class="text-overline text-orange-3">Fallback ready</div>
-            <div class="text-h6 q-mt-sm">Local break-glass access remains available.</div>
-            <div class="muted-copy q-mt-sm">External auth can fail without locking out App Admin recovery paths.</div>
-          </div>
-        </div>
-      </section>
+      <q-banner v-if="errorMessage" class="warning-banner q-mb-md text-white">
+        {{ errorMessage }}
+      </q-banner>
 
-      <section class="form-panel q-pa-xl">
-        <div class="section-kicker">Sign In</div>
-        <div class="text-h5 q-mt-sm">Access the control surface</div>
-        <p class="muted-copy q-mt-sm">
-          The available sign-in options come from the current deployment configuration.
-        </p>
+      <q-inner-loading :showing="loadingAuthOptions">
+        <q-spinner-rings size="36px" color="orange-4" />
+      </q-inner-loading>
 
-        <q-banner v-if="errorMessage" class="warning-banner q-mb-md text-white">
-          {{ errorMessage }}
-        </q-banner>
+      <q-form v-if="authMethodOptions.length" class="q-gutter-md" @submit.prevent="handleSignIn">
+        <q-input v-model="credentials.email" filled label="Email Address" type="email" autocomplete="username" />
+        <q-select
+          v-model="selectedAuthMethod"
+          filled
+          label="Authentication Method"
+          :options="authMethodOptions"
+          emit-value
+          map-options
+        />
+        <q-input
+          v-if="requiresPassword"
+          v-model="credentials.password"
+          filled
+          label="Password"
+          type="password"
+          autocomplete="current-password"
+        />
+        <div v-else class="muted-copy">Password is not required when signing in with Entra.</div>
+        <q-btn
+          unelevated
+          color="orange-6"
+          text-color="black"
+          class="full-width"
+          :label="submitLabel"
+          type="submit"
+          :loading="Boolean(submittingMethod)"
+        />
+      </q-form>
 
-        <q-inner-loading :showing="loadingAuthOptions">
-          <q-spinner-rings size="36px" color="orange-4" />
-        </q-inner-loading>
-
-        <div v-if="session.authOptions?.auth_mode === 'entra'" class="q-mb-lg">
-          <q-btn
-            unelevated
-            color="orange-6"
-            text-color="black"
-            class="full-width"
-            label="Continue with Entra"
-            @click="session.beginEntraLogin()"
-          />
-        </div>
-
-        <q-form v-if="session.authOptions?.auth_mode === 'ldap'" class="q-gutter-md q-mb-lg" @submit.prevent="submitLdap">
-          <q-input v-model="ldapForm.email" filled label="Email address" type="email" autocomplete="username" />
-          <q-input v-model="ldapForm.password" filled label="Password" type="password" autocomplete="current-password" />
-          <q-btn unelevated color="orange-6" text-color="black" class="full-width" label="Sign in with LDAP" type="submit" :loading="submittingLdap" />
-        </q-form>
-
-        <div v-if="session.authOptions?.local_auth_enabled" class="q-pt-sm">
-          <div class="text-subtitle2 text-orange-2 q-mb-sm">Local fallback sign-in</div>
-          <q-form class="q-gutter-md" @submit.prevent="submitLocal">
-            <q-input v-model="localForm.email" filled label="Email address" type="email" autocomplete="username" />
-            <q-input v-model="localForm.password" filled label="Password" type="password" autocomplete="current-password" />
-            <q-btn outline color="orange-3" class="full-width" label="Use local account" type="submit" :loading="submittingLocal" />
-          </q-form>
-        </div>
-      </section>
-    </div>
+      <q-banner v-else-if="!loadingAuthOptions" class="warning-banner q-mt-md text-white">
+        No authentication methods are currently available for this deployment.
+      </q-banner>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -86,13 +71,62 @@ const router = useRouter()
 const session = useSessionStore()
 
 const loadingAuthOptions = ref(true)
-const submittingLocal = ref(false)
-const submittingLdap = ref(false)
-const localForm = ref({ email: '', password: '' })
-const ldapForm = ref({ email: '', password: '' })
+const submittingMethod = ref('')
+const selectedAuthMethod = ref('')
+const credentials = ref({ email: '', password: '' })
 const transientError = ref('')
 
-const errorMessage = computed(() => transientError.value || route.query.error || '')
+const routeError = computed(() => (typeof route.query.error === 'string' ? route.query.error : ''))
+const errorMessage = computed(() => transientError.value || routeError.value)
+
+const authMethodOptions = computed(() => {
+  const options = []
+  const authMode = session.authOptions?.auth_mode
+
+  if (authMode === 'ldap') {
+    options.push({ label: 'LDAP', value: 'ldap' })
+  }
+  if (authMode === 'entra') {
+    options.push({ label: 'Entra', value: 'entra' })
+  }
+  if (session.authOptions?.local_auth_enabled || authMode === 'local') {
+    options.push({ label: 'Local', value: 'local' })
+  }
+
+  return options
+})
+
+const requiresPassword = computed(() => selectedAuthMethod.value === 'ldap' || selectedAuthMethod.value === 'local')
+
+const submitLabel = computed(() => {
+  switch (selectedAuthMethod.value) {
+    case 'ldap':
+      return 'Sign in with LDAP'
+    case 'local':
+      return 'Sign in with Local'
+    case 'entra':
+      return 'Continue with Entra'
+    default:
+      return 'Sign in'
+  }
+})
+
+watch(
+  authMethodOptions,
+  (options) => {
+    if (options.some((option) => option.value === selectedAuthMethod.value)) {
+      return
+    }
+    selectedAuthMethod.value = options.find((option) => option.value !== 'local')?.value || options[0]?.value || ''
+  },
+  { immediate: true },
+)
+
+watch(selectedAuthMethod, (value) => {
+  if (value === 'entra') {
+    credentials.value.password = ''
+  }
+})
 
 function targetRoute() {
   const requested = route.query.redirect
@@ -106,29 +140,36 @@ async function redirectAfterLogin() {
   await router.replace(targetRoute())
 }
 
-async function submitLocal() {
-  submittingLocal.value = true
-  transientError.value = ''
-  try {
-    await session.signInLocal(localForm.value)
-    await redirectAfterLogin()
-  } catch (error) {
-    transientError.value = extractApiMessage(error, 'Local sign-in failed.')
-  } finally {
-    submittingLocal.value = false
+async function handleSignIn() {
+  const method = selectedAuthMethod.value
+  if (!method) {
+    transientError.value = 'No authentication method is available.'
+    return
   }
-}
 
-async function submitLdap() {
-  submittingLdap.value = true
+  submittingMethod.value = method
   transientError.value = ''
   try {
-    await session.signInLdap(ldapForm.value)
-    await redirectAfterLogin()
+    if (method === 'local') {
+      await session.signInLocal(credentials.value)
+      await redirectAfterLogin()
+      return
+    }
+
+    if (method === 'ldap') {
+      await session.signInLdap(credentials.value)
+      await redirectAfterLogin()
+      return
+    }
+
+    session.beginEntraLogin()
   } catch (error) {
-    transientError.value = extractApiMessage(error, 'LDAP sign-in failed.')
+    transientError.value = extractApiMessage(
+      error,
+      method === 'ldap' ? 'LDAP sign-in failed.' : method === 'local' ? 'Local sign-in failed.' : 'Entra sign-in failed.',
+    )
   } finally {
-    submittingLdap.value = false
+    submittingMethod.value = ''
   }
 }
 
@@ -147,34 +188,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.login-grid {
-  width: 100%;
-  max-width: 1220px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(360px, 0.8fr);
-  gap: 1rem;
-}
-
 .login-page-shell {
   min-height: 100vh;
   width: 100%;
 }
 
-.hero-side {
-  min-height: 620px;
-}
-
-.hero-notes {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 960px) {
-  .login-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-notes {
-    grid-template-columns: 1fr;
-  }
+.login-card {
+  width: 100%;
+  max-width: 520px;
 }
 </style>

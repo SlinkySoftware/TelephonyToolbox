@@ -14,6 +14,9 @@ class SuccessfulCucmClient:
         return CucmDirectoryNumber(
             pattern=pattern,
             route_partition=route_partition,
+            description='Retail Support Main Line',
+            alerting_name='Retail Support',
+            ascii_alerting_name='Retail',
             call_forward_all_destination='+61412345678',
             calling_search_space='INTERNAL',
             secondary_calling_search_space='INTERNAL',
@@ -135,6 +138,20 @@ def test_admin_validate_source_returns_503_when_cucm_unavailable(monkeypatch, ad
 
     assert response.status_code == 503
     assert response.json()['message'] == 'CUCM is currently unavailable.'
+
+
+@pytest.mark.django_db
+def test_admin_validate_source_returns_line_name(monkeypatch, admin_client):
+    monkeypatch.setattr('diversions.services.get_cucm_client', lambda: SuccessfulCucmClient())
+
+    response = admin_client.post(
+        '/api/admin/diversions/validate-source/',
+        {'source_number': '0299990000'},
+        format='json',
+    )
+
+    assert response.status_code == 200
+    assert response.json()['line_name'] == 'Retail Support Main Line'
 
 
 @pytest.mark.django_db

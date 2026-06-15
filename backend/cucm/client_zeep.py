@@ -76,12 +76,18 @@ class ZeepCucmClient(CucmClient):
     def _parse_line(self, response, pattern, route_partition):
         line = self._field_value(response, 'return', {})
         call_forward_all = self._field_value(line, 'callForwardAll', {}) or {}
+        description = self._field_value(line, 'description')
+        alerting_name = self._field_value(line, 'alertingName')
+        ascii_alerting_name = self._field_value(line, 'asciiAlertingName')
         destination = self._field_value(call_forward_all, 'destination')
         css = self._field_value(call_forward_all, 'callingSearchSpaceName')
         secondary_css = self._field_value(call_forward_all, 'secondaryCallingSearchSpaceName')
         return CucmDirectoryNumber(
             pattern=pattern,
             route_partition=route_partition,
+            description=description,
+            alerting_name=alerting_name,
+            ascii_alerting_name=ascii_alerting_name,
             call_forward_all_destination=destination,
             calling_search_space=self._fk_value(css),
             secondary_calling_search_space=self._fk_value(secondary_css),
@@ -107,6 +113,9 @@ class ZeepCucmClient(CucmClient):
                 routePartitionName=self._route_partition_fk(route_partition),
                 returnedTags={
                     'pattern': '',
+                    'description': '',
+                    'alertingName': '',
+                    'asciiAlertingName': '',
                     'routePartitionName': '',
                     'callForwardAll': {
                         'destination': '',

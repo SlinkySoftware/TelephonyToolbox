@@ -39,7 +39,7 @@ SPDX-License-Identifier: GPL-3.0-only
         </template>
 
         <template #body-cell-last_updated_at="props">
-          <q-td :props="props">{{ formatDateTime(props.row.last_updated_at) }}</q-td>
+          <q-td :props="props">{{ formatLastUpdated(props.row) }}</q-td>
         </template>
 
         <template #body-cell-actions="props">
@@ -91,6 +91,14 @@ const filteredDiversions = computed(() => {
 })
 
 const cucmUnavailable = computed(() => diversions.value.some((item) => item.cucm_status !== 'available'))
+
+function formatLastUpdated(diversion) {
+  const formatted = formatDateTime(diversion.last_updated_at)
+  if (!diversion.last_updated_at) {
+    return formatted
+  }
+  return diversion.last_updated_by ? `${diversion.last_updated_by} on ${formatted}` : formatted
+}
 
 async function loadDiversions() {
   loading.value = true

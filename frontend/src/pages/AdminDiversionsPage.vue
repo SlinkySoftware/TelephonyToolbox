@@ -27,6 +27,7 @@ SPDX-License-Identifier: GPL-3.0-only
             <div v-if="sourceValidation" class="status-panel q-pa-md q-mt-md">
               <div><strong>Exists in CUCM:</strong> {{ sourceValidation.exists_in_cucm ? 'Yes' : 'No' }}</div>
               <div><strong>Already in app:</strong> {{ sourceValidation.already_exists_in_app ? 'Yes' : 'No' }}</div>
+              <div><strong>Line name:</strong> {{ sourceValidation.line_name || 'Not available' }}</div>
               <div><strong>Current destination:</strong> {{ sourceValidation.current_destination || 'None' }}</div>
             </div>
           </div>
@@ -123,7 +124,13 @@ async function loadData() {
 
 async function handleValidateSource() {
   try {
-    sourceValidation.value = await validateSourceNumber(sourceNumber.value)
+    const result = await validateSourceNumber(sourceNumber.value)
+    sourceValidation.value = result
+    sourceNumber.value = result.source_number
+    if (!editingId.value && result.is_valid) {
+      form.value.source_number = result.source_number
+      form.value.name = result.line_name || ''
+    }
   } catch (error) {
     $q.notify({ type: 'negative', message: extractApiMessage(error, 'Source number validation failed.') })
   }

@@ -8,10 +8,17 @@ from dataclasses import dataclass, field
 class CucmDirectoryNumber:
     pattern: str
     route_partition: str
+    description: str | None = None
+    alerting_name: str | None = None
+    ascii_alerting_name: str | None = None
     call_forward_all_destination: str | None = None
     calling_search_space: str | None = None
     secondary_calling_search_space: str | None = None
     raw_payload: dict = field(default_factory=dict)
+
+    @property
+    def line_name(self) -> str:
+        return self.description or self.alerting_name or self.ascii_alerting_name or self.pattern
 
 
 @dataclass(slots=True)

@@ -67,6 +67,7 @@ class DiversionAdminService:
                 'route_partition': settings.CUCM_ROUTE_PARTITION,
                 'exists_in_cucm': False,
                 'already_exists_in_app': exists_in_app,
+                'line_name': '',
                 'current_destination': '',
             }
 
@@ -76,6 +77,7 @@ class DiversionAdminService:
             'route_partition': settings.CUCM_ROUTE_PARTITION,
             'exists_in_cucm': True,
             'already_exists_in_app': exists_in_app,
+            'line_name': directory_number.line_name,
             'current_destination': directory_number.call_forward_all_destination or '',
         }
 
