@@ -55,11 +55,13 @@ The Quasar dev server proxies `/api` to Django on port `8000`.
 
 ## Install and Upgrade Scripts
 
-- Fresh install: [scripts/install.sh](scripts/install.sh)
-- Upgrade existing deployment: [scripts/upgrade.sh](scripts/upgrade.sh)
+- Fresh RHEL 9 install: [scripts/install-rhel-baremetal.sh](scripts/install-rhel-baremetal.sh)
+- Upgrade existing RHEL 9 deployment: [scripts/upgrade-rhel-baremetal.sh](scripts/upgrade-rhel-baremetal.sh)
 - Environment template: [scripts/env.example](scripts/env.example)
-- Systemd template: [scripts/templates/telephony-toolbox-gunicorn.service.template](scripts/templates/telephony-toolbox-gunicorn.service.template)
-- nginx template: [scripts/templates/telephony-toolbox.nginx.conf.template](scripts/templates/telephony-toolbox.nginx.conf.template)
+- Systemd template: [scripts/templates/telephonytoolbox-gunicorn.service.template](scripts/templates/telephonytoolbox-gunicorn.service.template)
+- nginx template: [scripts/templates/telephonytoolbox.nginx.conf.template](scripts/templates/telephonytoolbox.nginx.conf.template)
+
+The RHEL install flow defaults to `/opt/telephonytoolbox`, binds Gunicorn to `127.0.0.1:8010`, creates a dedicated nginx site under `sites-enabled`, and prompts for `APP_HOSTNAME` when it is not already supplied in the environment.
 
 # License
 

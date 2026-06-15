@@ -112,7 +112,7 @@ Django + Django REST Framework
 ### 4.2 Recommended filesystem layout
 
 ```text
-/opt/telephony-toolbox/
+/opt/telephonytoolbox/
   backend/
     manage.py
     telephony_toolbox/
@@ -125,13 +125,13 @@ Django + Django REST Framework
     health/
   frontend/
     dist/
-  venv/
+  .venv/
   logs/
 ```
 
 ### 4.3 Process model
 
-- `telephony-toolbox-gunicorn.service` managed by systemd.
+- `telephonytoolbox-gunicorn.service` managed by systemd.
 - nginx serves Quasar static files.
 - nginx proxies API traffic to gunicorn via localhost TCP or Unix socket.
 - Audit retention cleanup executed by cron or systemd timer using a Django management command.

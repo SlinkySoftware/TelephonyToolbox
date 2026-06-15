@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
+[Unit]
+Description=Telephony Toolbox gunicorn service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=<app-user>
+Group=<app-group>
+WorkingDirectory=<app-root>/backend
+EnvironmentFile=<env-file>
+ExecStart=<app-root>/.venv/bin/gunicorn telephony_toolbox.wsgi:application --workers 4 --worker-class sync --max-requests 1000 --max-requests-jitter 100 --timeout 60 --bind 127.0.0.1:8010 --access-logfile /var/log/telephonytoolbox/gunicorn-access.log --error-logfile /var/log/telephonytoolbox/application.log --capture-output --log-level info
+Restart=always
+RestartSec=5
+UMask=0007
+
+[Install]
+WantedBy=multi-user.target
