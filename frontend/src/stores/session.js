@@ -32,7 +32,16 @@ export const useSessionStore = defineStore('session', {
       }
 
       this.initializationPromise = (async () => {
-        this.authOptions = await fetchAuthOptions()
+        try {
+          this.authOptions = await fetchAuthOptions()
+        } catch (error) {
+          // Keep router startup alive even when backend is temporarily unavailable.
+          console.warn('Unable to load auth options during initialization', error)
+          this.authOptions = {
+            auth_mode: 'local',
+            local_auth_enabled: true,
+          }
+        }
         try {
           this.user = await fetchCurrentUser()
         } catch {

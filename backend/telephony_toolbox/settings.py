@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 from pathlib import Path
+import sys
 
 from telephony_toolbox.env import env_bool, env_int, env_list, env_str, load_env_file
 
@@ -13,6 +14,12 @@ load_env_file(REPO_ROOT / '.env')
 SECRET_KEY = env_str('DJANGO_SECRET_KEY', 'telephony-toolbox-dev-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', True)
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+if DEBUG or 'runserver' in sys.argv:
+    # Quasar/Vite proxy and local tooling can vary host headers in dev.
+    for host in ('localhost', '127.0.0.1', '0.0.0.0', '[::1]'):
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
 
 AUTH_MODE = env_str('AUTH_MODE', 'entra').lower()
 LOCAL_AUTH_ENABLED = env_bool('LOCAL_AUTH_ENABLED', True)
