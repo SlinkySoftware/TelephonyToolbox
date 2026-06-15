@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 """Django's command-line utility for administrative tasks."""
 import os
 import sys

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from pathlib import Path
 
 from telephony_toolbox.env import env_bool, env_int, env_list, env_str

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from django.db import models
 
 from telephony_toolbox.models import UUIDModel

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView

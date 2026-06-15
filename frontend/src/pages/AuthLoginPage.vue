@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 <template>
   <q-page class="row items-center justify-center q-pa-md">
     <div class="login-grid">

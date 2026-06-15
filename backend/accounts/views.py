@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db.models import Q

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 import pytest
 
 from dialplan.validators import validate_and_normalise_destination

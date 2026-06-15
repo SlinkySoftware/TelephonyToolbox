@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+
 export function formatDateTime(value) {
   if (!value) {
     return 'Not yet recorded'

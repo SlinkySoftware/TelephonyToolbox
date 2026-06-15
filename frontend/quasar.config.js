@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+ * SPDX-License-Identifier: GPL-3.0-only
+ */
+
 // Configuration for your app
 // https://legacy-app.quasar.dev/quasar-cli-vite-v2/quasar-config-file
 

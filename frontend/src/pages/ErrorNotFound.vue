@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 <template>
   <div class="fullscreen bg-blue text-white text-center q-pa-md flex flex-center">
     <div>

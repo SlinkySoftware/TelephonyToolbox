@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from rest_framework import status

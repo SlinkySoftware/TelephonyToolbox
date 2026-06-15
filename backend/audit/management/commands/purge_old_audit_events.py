@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+# SPDX-License-Identifier: GPL-3.0-only
+
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone

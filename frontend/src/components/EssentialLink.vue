@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 <template>
   <q-item clickable tag="a" target="_blank" :href="props.link">
     <q-item-section v-if="props.icon" avatar>

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: Copyright 2026, Slinky Software
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 <template>
   <q-layout view="hHh Lpr lFf" class="app-shell">
     <q-header class="app-header">
