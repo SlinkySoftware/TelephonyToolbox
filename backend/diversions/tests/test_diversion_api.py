@@ -4,6 +4,7 @@
 import pytest
 
 from access_groups.models import AccessGroup
+from audit.models import AuditEvent
 from cucm.exceptions import CucmUnavailableError
 from cucm.schemas import CucmDirectoryNumber, CucmUpdateResult
 from diversions.models import Diversion
@@ -94,9 +95,12 @@ def test_diversion_update_success(monkeypatch, standard_client, standard_user_me
     )
 
     diversion.refresh_from_db()
+    audit_event = AuditEvent.objects.filter(event_type='diversion.destination_update.success').latest('timestamp')
     assert response.status_code == 200
     assert response.json()['result'] == 'success'
     assert response.json()['diversion']['cucm_status'] == 'available'
+    assert audit_event.destination_number == '+61412345678'
+    assert audit_event.message == 'Diversion updated successfully to +61412345678.'
     assert diversion.cached_current_destination == '+61412345678'
 
 

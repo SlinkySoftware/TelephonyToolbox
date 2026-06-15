@@ -173,7 +173,7 @@ class DiversionUpdateService:
                 object_name=diversion.name,
                 source_number=diversion.source_number,
                 destination_number=readback.normalised_e164,
-                message='Diversion updated successfully.',
+                message=f'Diversion updated successfully to {readback.normalised_e164}.',
             )
             return 200, {
                 'result': 'success',
