@@ -10,7 +10,7 @@ from authlib.integrations.django_client import OAuth
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from ldap3 import ALL, SAFE_SYNC, Connection, Server
+from ldap3 import ALL, Connection, Server, SYNC
 from ldap3.core.exceptions import LDAPException
 from ldap3.utils.conv import escape_filter_chars
 import requests
@@ -70,7 +70,7 @@ class LdapIdentityProvider:
             user=settings.LDAP_BIND_DN,
             password=settings.LDAP_BIND_PASSWORD,
             auto_bind=True,
-            client_strategy=SAFE_SYNC,
+            client_strategy=SYNC,
             raise_exceptions=True,
         )
 
@@ -132,7 +132,7 @@ class LdapIdentityProvider:
                 user=entry.entry_dn,
                 password=password,
                 auto_bind=True,
-                client_strategy=SAFE_SYNC,
+                client_strategy=SYNC,
                 raise_exceptions=True,
             ).unbind()
         except LDAPException:

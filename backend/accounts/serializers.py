@@ -66,6 +66,7 @@ class AdminUserWriteSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         auth_source = attrs.get('auth_source', getattr(self.instance, 'auth_source', None))
+        group_ids = attrs.get('group_ids')
         password = attrs.get('password')
         if self.instance is None and not attrs.get('email'):
             raise serializers.ValidationError({'email': REQUIRED_FIELD_MESSAGE})
@@ -75,6 +76,10 @@ class AdminUserWriteSerializer(serializers.Serializer):
             raise serializers.ValidationError({'role': REQUIRED_FIELD_MESSAGE})
         if self.instance is None and not auth_source:
             raise serializers.ValidationError({'auth_source': REQUIRED_FIELD_MESSAGE})
+        if self.instance is None and not group_ids:
+            raise serializers.ValidationError({'group_ids': 'Select at least one group.'})
+        if self.instance is not None and group_ids is not None and not group_ids:
+            raise serializers.ValidationError({'group_ids': 'Select at least one group.'})
 
         if auth_source == AuthSource.LOCAL and self.instance is None and not password:
             raise serializers.ValidationError({'password': 'A password is required for local users.'})
