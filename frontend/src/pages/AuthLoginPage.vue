@@ -27,13 +27,6 @@ SPDX-License-Identifier: GPL-3.0-only
         </q-inner-loading>
 
         <q-form v-if="authMethodOptions.length" class="q-gutter-md" @submit.prevent="handleSignIn">
-          <q-input
-            v-model="credentials.email"
-            filled
-            label="Email Address"
-            type="email"
-            autocomplete="username"
-          />
           <q-select
             v-model="selectedAuthMethod"
             filled
@@ -41,6 +34,13 @@ SPDX-License-Identifier: GPL-3.0-only
             :options="authMethodOptions"
             emit-value
             map-options
+          />
+          <q-input
+            v-model="credentials.email"
+            filled
+            label="Email Address"
+            type="email"
+            autocomplete="username"
           />
           <q-input
             v-if="requiresPassword"
