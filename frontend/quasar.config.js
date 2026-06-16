@@ -6,7 +6,13 @@
 // Configuration for your app
 // https://legacy-app.quasar.dev/quasar-cli-vite-v2/quasar-config-file
 
-import { defineConfig } from '#q-app/wrappers'
+import { fileURLToPath } from 'node:url'
+import { defineConfig } from '@quasar/app-vite'
+
+const srcPath = fileURLToPath(new URL('./src', import.meta.url))
+const bootPath = fileURLToPath(new URL('./src/boot', import.meta.url))
+const layoutsPath = fileURLToPath(new URL('./src/layouts', import.meta.url))
+const pagesPath = fileURLToPath(new URL('./src/pages', import.meta.url))
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -56,21 +62,15 @@ export default defineConfig((/* ctx */) => {
       // polyfillModulePreload: true,
       // distDir
 
+      alias: {
+        boot: bootPath,
+        layouts: layoutsPath,
+        pages: pagesPath,
+        src: srcPath,
+      },
+
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
-
-      vitePlugins: [
-        [
-          'vite-plugin-checker',
-          {
-            eslint: {
-              lintCommand: 'eslint -c ./eslint.config.js "./src*/**/*.{js,mjs,cjs,vue}"',
-              useFlatConfig: true,
-            },
-          },
-          { server: false },
-        ],
-      ],
     },
 
     // https://legacy-app.quasar.dev/quasar-cli-vite-v2/quasar-config-file#devserver

@@ -16,20 +16,19 @@ Complete setup and development workflow for Telephony Toolbox contributors.
 ## Prerequisites
 
 - **Python**: 3.10+ (check with `python3 --version`)
-- **Node.js**: 18+ (check with `node --version`)
-- **pnpm**: 8+ (check with `pnpm --version`; install via `npm install -g pnpm`)
+- **Node.js**: 24+ (check with `node --version`)
+- **npm**: 11+ (check with `npm --version`)
 - **Git**: 2.0+ (check with `git --version`)
 - **PostgreSQL** (optional; SQLite used by default for development)
 
 **macOS**:
 ```bash
-brew install python@3.11 node pnpm
+brew install python@3.11 node
 ```
 
 **Ubuntu/Debian**:
 ```bash
 sudo apt install python3 python3-venv python3-pip nodejs npm
-sudo npm install -g pnpm
 ```
 
 **Windows**: Use WSL 2 or native installations via installers.
@@ -99,7 +98,7 @@ pip install -r backend/requirements.txt
 ### Step 4: Install Frontend Dependencies
 
 ```bash
-pnpm --prefix frontend install
+npm --prefix frontend install
 ```
 
 ### Step 5: Database Setup
@@ -136,7 +135,7 @@ python backend/manage.py runserver --nothreading
 # Should see "Starting development server at http://127.0.0.1:8000/"
 
 # In new terminal, test frontend
-pnpm --prefix frontend run dev
+npm --prefix frontend run dev
 # Should see "ready in 500ms" or similar
 
 # Check http://localhost:9000
@@ -166,7 +165,7 @@ python backend/manage.py runserver 0.0.0.0:8000
 
 ```bash
 # Terminal 2
-pnpm --prefix frontend run dev
+npm --prefix frontend run dev
 ```
 
 **Accessible at**: `http://localhost:9000`
@@ -241,18 +240,17 @@ backend/
     test_serializers.py
 ```
 
-### Frontend Tests (if configured)
+### Frontend Validation
 
 ```bash
-# All tests
-pnpm --prefix frontend run test
+# Formatting and lint
+npm --prefix frontend run lint:check
 
-# Watch mode
-pnpm --prefix frontend run test:watch
-
-# Coverage
-pnpm --prefix frontend run test:coverage
+# Production build
+npm --prefix frontend run build
 ```
+
+There is currently no dedicated frontend unit test script in `frontend/package.json`; build and lint checks are the authoritative frontend validation commands.
 
 ### Manual Testing Checklist
 
@@ -503,7 +501,7 @@ flake8 backend/
 mypy backend/
 
 # Frontend linting
-pnpm --prefix frontend run lint
+npm --prefix frontend run lint
 ```
 
 ---
@@ -599,7 +597,7 @@ git checkout -b feature/new-feature
 # Make changes
 # Test locally
 pytest
-pnpm --prefix frontend run lint
+npm --prefix frontend run lint
 
 # Commit
 git add .
@@ -627,7 +625,7 @@ pytest backend/
 flake8 backend/
 
 # Frontend
-pnpm --prefix frontend run lint
+npm --prefix frontend run lint
 ```
 
 **Tip**: Set up pre-commit hooks to automate this (see `setup-pre-commit` skill).
@@ -656,8 +654,8 @@ def my_view(request):
 
 ```bash
 # Build and analyze
-pnpm --prefix frontend run build
-pnpm --prefix frontend add webpack-bundle-analyzer
+npm --prefix frontend run build
+npm --prefix frontend install --save-dev webpack-bundle-analyzer
 ```
 
 ### Load Testing (if needed)

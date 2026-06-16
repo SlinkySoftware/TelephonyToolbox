@@ -232,14 +232,11 @@ sudo ln -s /etc/telephonytoolbox/backend.env /opt/telephonytoolbox/.env
 ```bash
 cd /opt/telephonytoolbox
 
-# Install pnpm if needed
-sudo npm install -g pnpm
-
 # Install frontend deps
-sudo -u telephonytoolbox pnpm --prefix frontend install
+sudo -u telephonytoolbox npm --prefix frontend ci
 
 # Build SPA
-sudo -u telephonytoolbox pnpm --prefix frontend run build
+sudo -u telephonytoolbox npm --prefix frontend run build
 
 # Symlink to web root
 sudo ln -s /opt/telephonytoolbox/frontend/dist/spa /var/www/telephonytoolbox/dist
@@ -761,8 +758,8 @@ sudo systemctl status telephonytoolbox
 ```bash
 # Build new frontend
 cd /opt/telephonytoolbox
-sudo -u telephonytoolbox pnpm --prefix frontend install
-sudo -u telephonytoolbox pnpm --prefix frontend run build
+sudo -u telephonytoolbox npm --prefix frontend ci
+sudo -u telephonytoolbox npm --prefix frontend run build
 
 # Symlink already points to dist/, so no extra steps needed
 # Verify
@@ -782,8 +779,8 @@ cd /opt/telephonytoolbox
 sudo git checkout HEAD~1
 
 # Rebuild frontend (if needed)
-sudo -u telephonytoolbox pnpm --prefix frontend install
-sudo -u telephonytoolbox pnpm --prefix frontend run build
+sudo -u telephonytoolbox npm --prefix frontend ci
+sudo -u telephonytoolbox npm --prefix frontend run build
 
 # Restart
 sudo systemctl restart telephonytoolbox

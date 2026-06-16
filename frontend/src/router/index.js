@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-import { defineRouter } from '#q-app/wrappers'
+import { defineRouter } from '@quasar/app-vite'
 import {
   createRouter,
   createMemoryHistory,

@@ -42,7 +42,7 @@ It is designed to be extensible so that if core telephony platforms are later mo
 ### Prerequisites
 
 - Python 3.10+
-- Node.js 18+ with pnpm
+- Node.js 24+ with npm
 - PostgreSQL (optional; SQLite used by default)
 
 ### Setup
@@ -66,7 +66,7 @@ It is designed to be extensible so that if core telephony platforms are later mo
 4. Install frontend dependencies:
 
 	```bash
-	pnpm --prefix frontend install
+	npm --prefix frontend install
 	```
 
 5. Run database migrations:
@@ -91,7 +91,7 @@ It is designed to be extensible so that if core telephony platforms are later mo
 	python backend/manage.py runserver 0.0.0.0:8000
 
 	# Terminal 2: Frontend on http://localhost:9000 (proxies /api to backend)
-	pnpm --prefix frontend run dev
+	npm --prefix frontend run dev
 	```
 
 ### Testing
@@ -102,8 +102,9 @@ Run tests from the repository root:
 # Backend tests
 .venv/bin/pytest
 
-# Frontend tests (if configured)
-pnpm --prefix frontend run test
+# Frontend validation
+npm --prefix frontend run lint:check
+npm --prefix frontend run build
 ```
 
 ## User Roles and Permissions
