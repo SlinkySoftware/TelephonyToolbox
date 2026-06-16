@@ -108,7 +108,9 @@ export async function listAdminDiversions() {
 }
 
 export async function validateSourceNumber(sourceNumber) {
-  const { data } = await api.post('admin/diversions/validate-source/', { source_number: sourceNumber })
+  const { data } = await api.post('admin/diversions/validate-source/', {
+    source_number: sourceNumber,
+  })
   return data
 }
 

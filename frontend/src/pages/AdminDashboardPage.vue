@@ -8,7 +8,9 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Operations Dashboard</h1>
-      <p class="page-subtitle">A compact pulse on access, inventory and backend health before you start making changes.</p>
+      <p class="page-subtitle">
+        A compact pulse on access, inventory and backend health before you start making changes.
+      </p>
     </section>
 
     <div class="metric-grid">
@@ -55,7 +57,10 @@ onMounted(async () => {
     metrics.diversions = diversions.length
     metrics.cucm = health.cucm.status
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to load dashboard metrics.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to load dashboard metrics.'),
+    })
   }
 })
 </script>

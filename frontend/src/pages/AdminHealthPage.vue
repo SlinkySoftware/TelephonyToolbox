@@ -8,7 +8,10 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">System Health</h1>
-      <p class="page-subtitle">Inspect application, database, CUCM and authentication readiness without exposing secret values.</p>
+      <p class="page-subtitle">
+        Inspect application, database, CUCM and authentication readiness without exposing secret
+        values.
+      </p>
     </section>
 
     <div class="metric-grid" v-if="health">
@@ -35,7 +38,10 @@ SPDX-License-Identifier: GPL-3.0-only
 
     <section v-if="health" class="status-panel q-pa-lg">
       <div class="text-subtitle2 text-orange-2">Environment readiness</div>
-      <div class="q-mt-sm">Required variables present: {{ health.environment.required_variables_present ? 'Yes' : 'No' }}</div>
+      <div class="q-mt-sm">
+        Required variables present:
+        {{ health.environment.required_variables_present ? 'Yes' : 'No' }}
+      </div>
       <div v-if="health.environment.missing?.length" class="muted-copy q-mt-sm">
         Missing: {{ health.environment.missing.join(', ') }}
       </div>
@@ -57,7 +63,10 @@ onMounted(async () => {
   try {
     health.value = await getAdminHealth()
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to load system health.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to load system health.'),
+    })
   }
 })
 </script>

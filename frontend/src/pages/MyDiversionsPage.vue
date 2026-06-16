@@ -8,11 +8,15 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">Assigned Work</div>
       <h1 class="page-title">My Diversions</h1>
-      <p class="page-subtitle">Refresh live state from CUCM, inspect the cached forwarding destination, and update only the lines you’re authorised to control.</p>
+      <p class="page-subtitle">
+        Refresh live state from CUCM, inspect the cached forwarding destination, and update only the
+        lines you’re authorised to control.
+      </p>
     </section>
 
     <q-banner v-if="cucmUnavailable" class="warning-banner text-white q-pa-md">
-      CUCM is currently unavailable. Cached diversion information is displayed. Diversion updates are temporarily disabled.
+      CUCM is currently unavailable. Cached diversion information is displayed. Diversion updates
+      are temporarily disabled.
     </q-banner>
 
     <section class="table-panel q-pa-lg">
@@ -21,7 +25,13 @@ SPDX-License-Identifier: GPL-3.0-only
           <q-input v-model="search" filled dense label="Search diversions" />
         </div>
         <div class="col-12 col-md-auto">
-          <q-btn color="orange-6" text-color="black" label="Reload list" @click="loadDiversions" :loading="loading" />
+          <q-btn
+            color="orange-6"
+            text-color="black"
+            label="Reload list"
+            @click="loadDiversions"
+            :loading="loading"
+          />
         </div>
       </div>
 
@@ -44,8 +54,23 @@ SPDX-License-Identifier: GPL-3.0-only
 
         <template #body-cell-actions="props">
           <q-td :props="props" class="q-gutter-sm">
-            <q-btn flat round dense icon="sync" color="orange-4" @click="handleRefresh(props.row)" />
-            <q-btn flat round dense icon="edit" color="orange-2" :disable="props.row.cucm_status !== 'available'" @click="goToEdit(props.row.id)" />
+            <q-btn
+              flat
+              round
+              dense
+              icon="sync"
+              color="orange-4"
+              @click="handleRefresh(props.row)"
+            />
+            <q-btn
+              flat
+              round
+              dense
+              icon="edit"
+              color="orange-2"
+              :disable="props.row.cucm_status !== 'available'"
+              @click="goToEdit(props.row.id)"
+            />
           </q-td>
         </template>
       </q-table>
@@ -71,7 +96,12 @@ const diversions = ref([])
 const columns = [
   { name: 'name', label: 'Name', field: 'name', align: 'left', sortable: true },
   { name: 'source_number', label: 'Source DN', field: 'source_number', align: 'left' },
-  { name: 'cached_current_destination', label: 'Cached destination', field: 'cached_current_destination', align: 'left' },
+  {
+    name: 'cached_current_destination',
+    label: 'Cached destination',
+    field: 'cached_current_destination',
+    align: 'left',
+  },
   { name: 'group', label: 'Group', field: (row) => row.group?.name || 'Unassigned', align: 'left' },
   { name: 'last_refreshed_at', label: 'Last refreshed', field: 'last_refreshed_at', align: 'left' },
   { name: 'last_updated_at', label: 'Last updated', field: 'last_updated_at', align: 'left' },
@@ -84,13 +114,21 @@ const filteredDiversions = computed(() => {
     return diversions.value
   }
   return diversions.value.filter((item) =>
-    [item.name, item.description, item.source_number, item.cached_current_destination, item.group?.name]
+    [
+      item.name,
+      item.description,
+      item.source_number,
+      item.cached_current_destination,
+      item.group?.name,
+    ]
       .filter(Boolean)
       .some((value) => value.toLowerCase().includes(term)),
   )
 })
 
-const cucmUnavailable = computed(() => diversions.value.some((item) => item.cucm_status !== 'available'))
+const cucmUnavailable = computed(() =>
+  diversions.value.some((item) => item.cucm_status !== 'available'),
+)
 
 function formatLastUpdated(diversion) {
   const formatted = formatDateTime(diversion.last_updated_at)
@@ -120,7 +158,10 @@ async function handleRefresh(diversion) {
     }
     $q.notify({ type: 'positive', message: 'Diversion refreshed.' })
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to refresh diversion.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to refresh diversion.'),
+    })
   }
 }
 

@@ -8,13 +8,17 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Manage Groups</h1>
-      <p class="page-subtitle">Shape the local access model without exposing unrelated diversions to standard users.</p>
+      <p class="page-subtitle">
+        Shape the local access model without exposing unrelated diversions to standard users.
+      </p>
     </section>
 
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg">
-          <div class="text-subtitle2 text-orange-2">{{ editingId ? 'Edit group' : 'Create group' }}</div>
+          <div class="text-subtitle2 text-orange-2">
+            {{ editingId ? 'Edit group' : 'Create group' }}
+          </div>
           <q-form ref="groupFormRef" class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveGroup">
             <q-input
               v-model="form.name"
@@ -24,7 +28,13 @@ SPDX-License-Identifier: GPL-3.0-only
               :rules="[groupNameRule]"
               lazy-rules="ondemand"
             />
-            <q-input v-model="form.description" filled type="textarea" autogrow label="Description" />
+            <q-input
+              v-model="form.description"
+              filled
+              type="textarea"
+              autogrow
+              label="Description"
+            />
             <div class="row q-gutter-sm">
               <q-btn
                 color="orange-6"
@@ -41,11 +51,32 @@ SPDX-License-Identifier: GPL-3.0-only
 
       <div class="col-12 col-lg-8">
         <section class="table-panel q-pa-lg">
-          <q-table :rows="groups" :columns="columns" row-key="id" flat :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
+          <q-table
+            :rows="groups"
+            :columns="columns"
+            row-key="id"
+            flat
+            :rows-per-page-options="[10, 20, 50, 0]"
+            :pagination="{ rowsPerPage: 10 }"
+          >
             <template #body-cell-actions="props">
               <q-td :props="props" class="q-gutter-sm">
-                <q-btn flat round dense icon="edit" color="orange-3" @click="beginEdit(props.row)" />
-                <q-btn flat round dense icon="delete" color="red-3" @click="handleDeleteGroup(props.row)" />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="edit"
+                  color="orange-3"
+                  @click="beginEdit(props.row)"
+                />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="delete"
+                  color="red-3"
+                  @click="handleDeleteGroup(props.row)"
+                />
               </q-td>
             </template>
           </q-table>
@@ -125,11 +156,18 @@ async function handleSaveGroup() {
 
 async function handleDeleteGroup(group) {
   try {
-    await $q.dialog({ title: 'Delete group', message: 'Deletion is blocked if diversions are assigned to this group.', cancel: true, persistent: true }).onOk(async () => {
-      await deleteGroup(group.id)
-      await loadGroups()
-      $q.notify({ type: 'positive', message: 'Group deleted.' })
-    })
+    await $q
+      .dialog({
+        title: 'Delete group',
+        message: 'Deletion is blocked if diversions are assigned to this group.',
+        cancel: true,
+        persistent: true,
+      })
+      .onOk(async () => {
+        await deleteGroup(group.id)
+        await loadGroups()
+        $q.notify({ type: 'positive', message: 'Group deleted.' })
+      })
   } catch (error) {
     if (error) {
       $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to delete group.') })

@@ -16,13 +16,41 @@ const routes = [
     children: [
       { path: '', component: () => import('pages/LandingRedirectPage.vue') },
       { path: 'diversions', component: () => import('pages/MyDiversionsPage.vue') },
-      { path: 'diversions/:id/edit', component: () => import('pages/EditDiversionPage.vue'), props: true },
-      { path: 'admin', component: () => import('pages/AdminDashboardPage.vue'), meta: { adminOnly: true } },
-      { path: 'admin/users', component: () => import('pages/AdminUsersPage.vue'), meta: { adminOnly: true } },
-      { path: 'admin/groups', component: () => import('pages/AdminGroupsPage.vue'), meta: { adminOnly: true } },
-      { path: 'admin/diversions', component: () => import('pages/AdminDiversionsPage.vue'), meta: { adminOnly: true } },
-      { path: 'admin/audit', component: () => import('pages/AdminAuditPage.vue'), meta: { adminOnly: true } },
-      { path: 'admin/health', component: () => import('pages/AdminHealthPage.vue'), meta: { adminOnly: true } },
+      {
+        path: 'diversions/:id/edit',
+        component: () => import('pages/EditDiversionPage.vue'),
+        props: true,
+      },
+      {
+        path: 'admin',
+        component: () => import('pages/AdminDashboardPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/users',
+        component: () => import('pages/AdminUsersPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/groups',
+        component: () => import('pages/AdminGroupsPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/diversions',
+        component: () => import('pages/AdminDiversionsPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/audit',
+        component: () => import('pages/AdminAuditPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/health',
+        component: () => import('pages/AdminHealthPage.vue'),
+        meta: { adminOnly: true },
+      },
     ],
   },
 

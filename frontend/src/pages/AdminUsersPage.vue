@@ -8,7 +8,10 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Manage Users</h1>
-      <p class="page-subtitle">Validate external identities, provision local fallback users, assign roles and bind access groups.</p>
+      <p class="page-subtitle">
+        Validate external identities, provision local fallback users, assign roles and bind access
+        groups.
+      </p>
     </section>
 
     <div class="row q-col-gutter-lg">
@@ -39,12 +42,17 @@ SPDX-License-Identifier: GPL-3.0-only
             <div v-if="externalValidation" class="status-panel q-pa-md q-mt-md">
               <div><strong>Exists:</strong> {{ externalValidation.exists ? 'Yes' : 'No' }}</div>
               <div><strong>Provider:</strong> {{ externalValidation.provider }}</div>
-              <div><strong>Display name:</strong> {{ externalValidation.display_name || 'Not returned' }}</div>
+              <div>
+                <strong>Display name:</strong>
+                {{ externalValidation.display_name || 'Not returned' }}
+              </div>
             </div>
           </div>
 
           <div>
-            <div class="text-subtitle2 text-orange-2">{{ editingId ? 'Edit user' : 'Create user' }}</div>
+            <div class="text-subtitle2 text-orange-2">
+              {{ editingId ? 'Edit user' : 'Create user' }}
+            </div>
             <q-form ref="userFormRef" class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveUser">
               <q-input
                 v-model="form.email"
@@ -104,7 +112,12 @@ SPDX-License-Identifier: GPL-3.0-only
               />
               <q-toggle v-model="form.is_active" label="User is active" color="orange-5" />
               <div class="row q-gutter-sm">
-                <q-btn color="orange-6" text-color="black" :label="editingId ? 'Update user' : 'Create user'" type="submit" />
+                <q-btn
+                  color="orange-6"
+                  text-color="black"
+                  :label="editingId ? 'Update user' : 'Create user'"
+                  type="submit"
+                />
                 <q-btn flat color="grey-4" label="Reset" @click="resetForm" />
               </div>
             </q-form>
@@ -123,7 +136,14 @@ SPDX-License-Identifier: GPL-3.0-only
             </div>
           </div>
 
-          <q-table :rows="filteredUsers" :columns="columns" row-key="id" flat :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
+          <q-table
+            :rows="filteredUsers"
+            :columns="columns"
+            row-key="id"
+            flat
+            :rows-per-page-options="[10, 20, 50, 0]"
+            :pagination="{ rowsPerPage: 10 }"
+          >
             <template #body-cell-email="props">
               <q-td :props="props">
                 <div class="row items-center no-wrap q-gutter-sm">
@@ -139,13 +159,29 @@ SPDX-License-Identifier: GPL-3.0-only
             </template>
 
             <template #body-cell-groups="props">
-              <q-td :props="props">{{ props.row.groups.map((group) => group.name).join(', ') || 'None' }}</q-td>
+              <q-td :props="props">{{
+                props.row.groups.map((group) => group.name).join(', ') || 'None'
+              }}</q-td>
             </template>
 
             <template #body-cell-actions="props">
               <q-td :props="props" class="q-gutter-sm">
-                <q-btn flat round dense icon="edit" color="orange-3" @click="beginEdit(props.row)" />
-                <q-btn flat round dense icon="delete" color="red-3" @click="handleDeleteUser(props.row)" />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="edit"
+                  color="orange-3"
+                  @click="beginEdit(props.row)"
+                />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="delete"
+                  color="red-3"
+                  @click="handleDeleteUser(props.row)"
+                />
               </q-td>
             </template>
           </q-table>
@@ -191,7 +227,9 @@ const authSourceOptions = computed(() => {
   ]
 })
 
-const groupOptions = computed(() => groups.value.map((group) => ({ label: group.name, value: group.id })))
+const groupOptions = computed(() =>
+  groups.value.map((group) => ({ label: group.name, value: group.id })),
+)
 const trimmedValidationEmail = computed(() => validationEmail.value.trim())
 const isEditing = computed(() => Boolean(editingId.value))
 const isLocalAuthSource = computed(() => form.value.auth_source === 'local')
@@ -203,9 +241,11 @@ const roleOptions = [
 ]
 
 const emailRule = (value) => Boolean(String(value || '').trim()) || 'Email is required.'
-const displayNameRule = (value) => Boolean(String(value || '').trim()) || 'Display name is required.'
+const displayNameRule = (value) =>
+  Boolean(String(value || '').trim()) || 'Display name is required.'
 const authSourceRule = (value) => Boolean(value) || 'Auth source is required.'
-const groupRule = (value) => Array.isArray(value) && value.length > 0 || 'Select at least one group.'
+const groupRule = (value) =>
+  (Array.isArray(value) && value.length > 0) || 'Select at least one group.'
 const passwordRule = (value) => {
   if (!isLocalAuthSource.value || isEditing.value) {
     return true
@@ -228,7 +268,9 @@ const filteredUsers = computed(() => {
     return users.value
   }
   return users.value.filter((user) =>
-    [user.email, user.display_name, user.auth_source, user.role].some((value) => value.toLowerCase().includes(term)),
+    [user.email, user.display_name, user.auth_source, user.role].some((value) =>
+      value.toLowerCase().includes(term),
+    ),
   )
 })
 
@@ -269,7 +311,9 @@ function defaultFormState() {
 }
 
 function normalizeEmail(value) {
-  return String(value || '').trim().toLowerCase()
+  return String(value || '')
+    .trim()
+    .toLowerCase()
 }
 
 function handleValidationEmailInput(value) {
@@ -317,7 +361,10 @@ async function handleValidateExternalUser() {
       userFormRef.value?.resetValidation()
     }
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'External validation failed.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'External validation failed.'),
+    })
   }
 }
 
@@ -348,16 +395,18 @@ async function handleSaveUser() {
 
 async function handleDeleteUser(user) {
   try {
-    await $q.dialog({
-      title: 'Delete user',
-      message: 'This hard deletes the user record. Historical audit entries will remain.',
-      cancel: true,
-      persistent: true,
-    }).onOk(async () => {
-      await deleteUser(user.id)
-      await loadData()
-      $q.notify({ type: 'positive', message: 'User deleted.' })
-    })
+    await $q
+      .dialog({
+        title: 'Delete user',
+        message: 'This hard deletes the user record. Historical audit entries will remain.',
+        cancel: true,
+        persistent: true,
+      })
+      .onOk(async () => {
+        await deleteUser(user.id)
+        await loadData()
+        $q.notify({ type: 'positive', message: 'User deleted.' })
+      })
   } catch {
     // Dialog cancelled.
   }

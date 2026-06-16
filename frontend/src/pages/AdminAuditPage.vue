@@ -8,15 +8,25 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Audit Log</h1>
-      <p class="page-subtitle">Filter operational history and export the currently selected window to CSV.</p>
+      <p class="page-subtitle">
+        Filter operational history and export the currently selected window to CSV.
+      </p>
     </section>
 
     <section class="form-panel q-pa-lg soft-grid">
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-3"><q-input v-model="filters.actor_email" filled dense label="Actor email" /></div>
-        <div class="col-12 col-md-2"><q-input v-model="filters.event_type" filled dense label="Event type" /></div>
-        <div class="col-12 col-md-2"><q-input v-model="filters.result" filled dense label="Result" /></div>
-        <div class="col-12 col-md-2"><q-input v-model="filters.source_number" filled dense label="Source number" /></div>
+        <div class="col-12 col-md-3">
+          <q-input v-model="filters.actor_email" filled dense label="Actor email" />
+        </div>
+        <div class="col-12 col-md-2">
+          <q-input v-model="filters.event_type" filled dense label="Event type" />
+        </div>
+        <div class="col-12 col-md-2">
+          <q-input v-model="filters.result" filled dense label="Result" />
+        </div>
+        <div class="col-12 col-md-2">
+          <q-input v-model="filters.source_number" filled dense label="Source number" />
+        </div>
         <div class="col-12 col-md-3 row q-gutter-sm items-start">
           <q-btn color="orange-6" text-color="black" label="Apply filters" @click="loadAudit" />
           <q-btn outline color="orange-3" label="Export CSV" :href="exportUrl" target="_blank" />
@@ -25,7 +35,15 @@ SPDX-License-Identifier: GPL-3.0-only
     </section>
 
     <section class="table-panel q-pa-lg">
-      <q-table :rows="rows" :columns="columns" row-key="id" flat :loading="loading" :rows-per-page-options="[10, 20, 50, 0]" :pagination="{ rowsPerPage: 10 }">
+      <q-table
+        :rows="rows"
+        :columns="columns"
+        row-key="id"
+        flat
+        :loading="loading"
+        :rows-per-page-options="[10, 20, 50, 0]"
+        :pagination="{ rowsPerPage: 10 }"
+      >
         <template #body-cell-timestamp="props">
           <q-td :props="props">{{ formatDateTime(props.row.timestamp) }}</q-td>
         </template>
@@ -64,7 +82,10 @@ async function loadAudit() {
     const data = await listAudit(filters.value)
     rows.value = data.results || []
   } catch (error) {
-    $q.notify({ type: 'negative', message: extractApiMessage(error, 'Unable to load audit events.') })
+    $q.notify({
+      type: 'negative',
+      message: extractApiMessage(error, 'Unable to load audit events.'),
+    })
   } finally {
     loading.value = false
   }
