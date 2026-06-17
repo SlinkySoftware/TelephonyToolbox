@@ -11,7 +11,7 @@ import {
   ldapLogin,
   localLogin,
   logoutSession,
-  startEntraLogin,
+  startExternalLogin,
 } from 'src/services/toolboxApi'
 
 export const useSessionStore = defineStore('session', {
@@ -72,8 +72,8 @@ export const useSessionStore = defineStore('session', {
       return this.user
     },
 
-    beginEntraLogin() {
-      startEntraLogin()
+    beginExternalLogin() {
+      startExternalLogin(this.authOptions?.auth_mode)
     },
 
     async logout() {

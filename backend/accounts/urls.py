@@ -13,6 +13,8 @@ from accounts.views import (
     EntraLoginView,
     LdapLoginView,
     LocalLoginView,
+    OidcCallbackView,
+    OidcLoginView,
     LogoutView,
 )
 
@@ -22,6 +24,8 @@ urlpatterns = [
     path('auth/me/', CurrentUserView.as_view(), name='auth-me'),
     path('auth/login/entra/', EntraLoginView.as_view(), name='auth-entra-login'),
     path('auth/login/entra/callback/', EntraCallbackView.as_view(), name='auth-entra-callback'),
+    path('auth/login/oidc/', OidcLoginView.as_view(), name='auth-oidc-login'),
+    path('auth/login/oidc/callback/', OidcCallbackView.as_view(), name='auth-oidc-callback'),
     path('auth/login/ldap/', LdapLoginView.as_view(), name='auth-ldap-login'),
     path('auth/login/local/', LocalLoginView.as_view(), name='auth-local-login'),
     path('auth/logout/', LogoutView.as_view(), name='auth-logout'),

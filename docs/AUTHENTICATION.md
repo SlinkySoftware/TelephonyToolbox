@@ -6,9 +6,10 @@ Complete reference for authentication flows, identity provider setup, and user p
 
 Telephony Toolbox supports flexible authentication:
 
-- **Primary Provider**: Entra (OIDC) or LDAP (selected via `AUTH_MODE`)
+- **Primary Provider**: Entra (OIDC), generic OIDC/OAuth, or LDAP (selected via `AUTH_MODE`)
 - **Local Fallback**: Always available; credentials stored in local User table
 - **Session Management**: Django session cookies (HttpOnly, Secure, SameSite=Strict)
+- **Frontend Provider Label**: `EXTERNAL_AUTH_NAME` controls the display name shown on login screens
 
 ## Authentication Flows
 
@@ -163,6 +164,68 @@ Redirect to /diversions or /admin
 - `ENTRA_CLIENT_SECRET` — Client secret from Azure Portal
 - `ENTRA_TENANT_ID` — Directory ID (tenant ID)
 - `ENTRA_REDIRECT_URI` — Callback URL registered in Entra
+
+---
+
+### Generic OIDC/OAuth Authentication Flow
+
+```
+User clicks provider sign-in button
+             ↓
+GET /api/auth/login/oidc/
+             ↓
+Backend:
+   1. Check if AUTH_MODE = oidc (else 404)
+   2. Load authorization endpoint from OIDC discovery metadata
+   3. Generate random state/nonce values
+   4. Redirect to provider login page
+             ↓
+User authenticates with provider (for example Authentik, Okta, Keycloak)
+             ↓
+Provider redirects back with authorization code
+             ↓
+GET /api/auth/login/oidc/callback/?code=...&state=...
+             ↓
+Backend:
+   1. Validate state parameter
+   2. Exchange code for tokens
+   3. Validate ID token / userinfo claims
+   4. Extract email, username, and display name using configured claim names
+   5. Sync user to local DB (update only; user must already be provisioned)
+   6. Create Django session
+             ↓
+Redirect to /diversions or /admin
+```
+
+**OIDC Configuration** (`CONFIGURATION.md`):
+- `OIDC_CLIENT_ID`
+- `OIDC_CLIENT_SECRET`
+- `OIDC_METADATA_URL`
+- `OIDC_REDIRECT_URI`
+- `OIDC_SCOPES`
+- `OIDC_EMAIL_CLAIM`
+- `OIDC_USERNAME_CLAIM`
+- `OIDC_DISPLAY_NAME_CLAIM`
+
+**Provisioning Note**:
+- Generic OIDC/OAuth providers do not expose a standard directory search API.
+- App Admins can still create external users manually by email.
+- The admin-side `validate external user` helper is available only for Entra and LDAP in the current implementation.
+
+**Authentik Example**:
+
+```bash
+AUTH_MODE=oidc
+EXTERNAL_AUTH_NAME=Authentik Login
+OIDC_CLIENT_ID=telephony-toolbox
+OIDC_CLIENT_SECRET=change-me
+OIDC_METADATA_URL=https://auth.example.internal/application/o/telephony-toolbox/.well-known/openid-configuration
+OIDC_REDIRECT_URI=https://telephonytoolbox.example.internal/api/auth/login/oidc/callback/
+OIDC_SCOPES=openid profile email
+OIDC_EMAIL_CLAIM=email
+OIDC_USERNAME_CLAIM=preferred_username
+OIDC_DISPLAY_NAME_CLAIM=name
+```
 
 ---
 

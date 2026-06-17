@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2026, Slinky Software
 # SPDX-License-Identifier: GPL-3.0-only
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -10,6 +11,11 @@ from accounts.models import AuthSource, UserRole
 
 User = get_user_model()
 REQUIRED_FIELD_MESSAGE = 'This field is required.'
+CONFIGURED_EXTERNAL_AUTH_SOURCE = {
+    'entra': AuthSource.ENTRA,
+    'ldap': AuthSource.LDAP,
+    'oidc': AuthSource.OIDC,
+}
 
 
 class GroupSummarySerializer(serializers.ModelSerializer):
@@ -64,27 +70,45 @@ class AdminUserWriteSerializer(serializers.Serializer):
     group_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     password = serializers.CharField(required=False, trim_whitespace=False, allow_blank=False)
 
-    def validate(self, attrs):
-        auth_source = attrs.get('auth_source', getattr(self.instance, 'auth_source', None))
-        group_ids = attrs.get('group_ids')
-        password = attrs.get('password')
-        if self.instance is None and not attrs.get('email'):
+    def _validate_required_create_fields(self, attrs, auth_source, group_ids):
+        if self.instance is not None:
+            return
+        if not attrs.get('email'):
             raise serializers.ValidationError({'email': REQUIRED_FIELD_MESSAGE})
-        if self.instance is None and not attrs.get('display_name'):
+        if not attrs.get('display_name'):
             raise serializers.ValidationError({'display_name': REQUIRED_FIELD_MESSAGE})
-        if self.instance is None and not attrs.get('role'):
+        if not attrs.get('role'):
             raise serializers.ValidationError({'role': REQUIRED_FIELD_MESSAGE})
-        if self.instance is None and not auth_source:
+        if not auth_source:
             raise serializers.ValidationError({'auth_source': REQUIRED_FIELD_MESSAGE})
-        if self.instance is None and not group_ids:
+        if not group_ids:
             raise serializers.ValidationError({'group_ids': 'Select at least one group.'})
+
+    def _validate_group_ids(self, group_ids):
         if self.instance is not None and group_ids is not None and not group_ids:
             raise serializers.ValidationError({'group_ids': 'Select at least one group.'})
 
+    def _validate_auth_source(self, auth_source):
+        expected_external_auth_source = CONFIGURED_EXTERNAL_AUTH_SOURCE.get(settings.AUTH_MODE)
+        if auth_source and auth_source != AuthSource.LOCAL and auth_source != expected_external_auth_source:
+            raise serializers.ValidationError(
+                {'auth_source': 'Auth source must match the configured external authentication provider.'}
+            )
+
+    def _validate_password_rules(self, auth_source, password):
         if auth_source == AuthSource.LOCAL and self.instance is None and not password:
             raise serializers.ValidationError({'password': 'A password is required for local users.'})
         if auth_source != AuthSource.LOCAL and password:
             raise serializers.ValidationError({'password': 'Passwords are only permitted for local users.'})
+
+    def validate(self, attrs):
+        auth_source = attrs.get('auth_source', getattr(self.instance, 'auth_source', None))
+        group_ids = attrs.get('group_ids')
+        password = attrs.get('password')
+        self._validate_required_create_fields(attrs, auth_source, group_ids)
+        self._validate_group_ids(group_ids)
+        self._validate_auth_source(auth_source)
+        self._validate_password_rules(auth_source, password)
         return attrs
 
 

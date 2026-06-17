@@ -200,7 +200,7 @@ PostgreSQL password. Can be empty if database allows password-less access.
 
 #### `AUTH_MODE`
 
-**Type**: Enum (`entra`, `ldap`)  
+**Type**: Enum (`entra`, `ldap`, `oidc`)  
 **Required**: No  
 **Default**: `entra`  
 **Example**: `ldap`
@@ -210,8 +210,25 @@ Primary authentication provider. Determines which login form frontend displays a
 **Supported Values**:
 - `entra` — Microsoft Entra ID (OIDC)
 - `ldap` — LDAP directory server
+- `oidc` — Generic OpenID Connect / OAuth 2.0 provider with discovery metadata
 
 **Local Fallback**: Enabled regardless of `AUTH_MODE` (controlled by `LOCAL_AUTH_ENABLED`).
+
+---
+
+#### `EXTERNAL_AUTH_NAME`
+
+**Type**: String  
+**Required**: No  
+**Default**: Provider-specific (`Entra`, `LDAP`, or `OpenID Connect`)  
+**Example**: `Enterprise Sign In`
+
+Friendly label shown on frontend sign-in screens for the configured external provider.
+
+**Usage**:
+- Customize the login button text users see
+- Use provider branding such as `Authentik Login`, `OKTA Login`, or `Enterprise Sign In`
+- Display only; not used for backend routing or provider selection
 
 ---
 
@@ -286,6 +303,113 @@ OAuth2 callback URL registered in Entra app. Must match exactly (including trail
 **Must be HTTPS** in production (unless localhost for dev).
 
 **Registration**: Add in Azure Portal → Entra ID → App registrations → [App] → Authentication → Redirect URIs.
+
+---
+
+### Generic OIDC/OAuth Configuration
+
+Required if `AUTH_MODE=oidc`.
+
+#### `OIDC_CLIENT_ID`
+
+**Type**: String  
+**Required**: If `AUTH_MODE=oidc`  
+**Default**: None  
+**Example**: `telephony-toolbox`
+
+OAuth client ID registered with your OpenID Connect provider.
+
+---
+
+#### `OIDC_CLIENT_SECRET`
+
+**Type**: String  
+**Required**: If `AUTH_MODE=oidc`  
+**Default**: None  
+**Example**: `change-me`
+
+OAuth client secret used for token exchange.
+
+---
+
+#### `OIDC_METADATA_URL`
+
+**Type**: HTTPS URL  
+**Required**: If `AUTH_MODE=oidc`  
+**Default**: None  
+**Example**: `https://auth.example.internal/application/o/telephony-toolbox/.well-known/openid-configuration`
+
+OpenID Connect discovery document URL. The application reads authorization, token, JWKS, and userinfo endpoints from this metadata.
+
+---
+
+#### `OIDC_REDIRECT_URI`
+
+**Type**: HTTPS URL  
+**Required**: If `AUTH_MODE=oidc`  
+**Default**: None  
+**Example**: `https://telephonytoolbox.example.internal/api/auth/login/oidc/callback/`
+
+Callback URL registered with the provider. Must match exactly.
+
+---
+
+#### `OIDC_SCOPES`
+
+**Type**: Space-delimited string  
+**Required**: No  
+**Default**: `openid profile email`  
+**Example**: `openid profile email`
+
+Scopes requested during the login flow.
+
+---
+
+#### `OIDC_EMAIL_CLAIM`
+
+**Type**: String  
+**Required**: No  
+**Default**: `email`  
+**Example**: `email`
+
+Primary claim name used to extract the canonical user email address from the ID token or userinfo payload.
+
+---
+
+#### `OIDC_USERNAME_CLAIM`
+
+**Type**: String  
+**Required**: No  
+**Default**: `preferred_username`  
+**Example**: `preferred_username`
+
+Primary claim name used to extract the provider username.
+
+---
+
+#### `OIDC_DISPLAY_NAME_CLAIM`
+
+**Type**: String  
+**Required**: No  
+**Default**: `name`  
+**Example**: `name`
+
+Primary claim name used to extract the display name.
+
+**Authentik Example**:
+
+```bash
+AUTH_MODE=oidc
+EXTERNAL_AUTH_NAME=Authentik Login
+OIDC_CLIENT_ID=telephony-toolbox
+OIDC_CLIENT_SECRET=change-me
+OIDC_METADATA_URL=https://auth.example.internal/application/o/telephony-toolbox/.well-known/openid-configuration
+OIDC_REDIRECT_URI=https://telephonytoolbox.example.internal/api/auth/login/oidc/callback/
+OIDC_SCOPES=openid profile email
+OIDC_EMAIL_CLAIM=email
+OIDC_USERNAME_CLAIM=preferred_username
+OIDC_DISPLAY_NAME_CLAIM=name
+```
 
 ---
 

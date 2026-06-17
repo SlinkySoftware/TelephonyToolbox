@@ -10,6 +10,14 @@ from cucm.exceptions import CucmAuthenticationError, CucmUnavailableError
 from cucm.factory import get_cucm_client
 
 
+def _auth_provider_configuration_key():
+    if settings.AUTH_MODE == 'entra':
+        return 'auth_entra'
+    if settings.AUTH_MODE == 'oidc':
+        return 'auth_oidc'
+    return 'auth_ldap'
+
+
 def _database_status():
     try:
         with connections['default'].cursor() as cursor:
@@ -56,7 +64,7 @@ def _cucm_status():
 
 
 def _auth_status():
-    provider_key = 'auth_entra' if settings.AUTH_MODE == 'entra' else 'auth_ldap'
+    provider_key = _auth_provider_configuration_key()
     required = settings.REQUIRED_CONFIGURATION[provider_key]
     missing = [name for name in required if not os.getenv(name)]
     return {
@@ -79,10 +87,7 @@ def _required_env_status():
         'CUCM_AXL_PASSWORD',
         'CUCM_AXL_VERSION',
     ]
-    if settings.AUTH_MODE == 'entra':
-        common.extend(settings.REQUIRED_CONFIGURATION['auth_entra'])
-    else:
-        common.extend(settings.REQUIRED_CONFIGURATION['auth_ldap'])
+    common.extend(settings.REQUIRED_CONFIGURATION[_auth_provider_configuration_key()])
 
     missing = sorted({name for name in common if not os.getenv(name)})
     return {'required_variables_present': not missing, 'missing': missing}

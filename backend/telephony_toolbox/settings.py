@@ -11,6 +11,14 @@ REPO_ROOT = BASE_DIR.parent
 
 load_env_file(REPO_ROOT / '.env')
 
+
+def _default_external_auth_name(auth_mode):
+    return {
+        'entra': 'Entra',
+        'ldap': 'LDAP',
+        'oidc': 'OpenID Connect',
+    }.get(auth_mode, 'External Sign In')
+
 SECRET_KEY = env_str('DJANGO_SECRET_KEY', 'telephony-toolbox-dev-secret-key')
 DEBUG = env_bool('DJANGO_DEBUG', True)
 ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
@@ -23,6 +31,7 @@ if DEBUG or 'runserver' in sys.argv:
 
 AUTH_MODE = env_str('AUTH_MODE', 'entra').lower()
 LOCAL_AUTH_ENABLED = env_bool('LOCAL_AUTH_ENABLED', True)
+EXTERNAL_AUTH_NAME = env_str('EXTERNAL_AUTH_NAME', _default_external_auth_name(AUTH_MODE)).strip() or _default_external_auth_name(AUTH_MODE)
 
 CUCM_AXL_HOST = env_str('CUCM_AXL_HOST', '')
 CUCM_AXL_USERNAME = env_str('CUCM_AXL_USERNAME', '')
@@ -45,6 +54,15 @@ ENTRA_CLIENT_ID = env_str('ENTRA_CLIENT_ID', '')
 ENTRA_CLIENT_SECRET = env_str('ENTRA_CLIENT_SECRET', '')
 ENTRA_TENANT_ID = env_str('ENTRA_TENANT_ID', '')
 ENTRA_REDIRECT_URI = env_str('ENTRA_REDIRECT_URI', '')
+
+OIDC_CLIENT_ID = env_str('OIDC_CLIENT_ID', '')
+OIDC_CLIENT_SECRET = env_str('OIDC_CLIENT_SECRET', '')
+OIDC_METADATA_URL = env_str('OIDC_METADATA_URL', '')
+OIDC_REDIRECT_URI = env_str('OIDC_REDIRECT_URI', '')
+OIDC_SCOPES = env_str('OIDC_SCOPES', 'openid profile email')
+OIDC_EMAIL_CLAIM = env_str('OIDC_EMAIL_CLAIM', 'email')
+OIDC_USERNAME_CLAIM = env_str('OIDC_USERNAME_CLAIM', 'preferred_username')
+OIDC_DISPLAY_NAME_CLAIM = env_str('OIDC_DISPLAY_NAME_CLAIM', 'name')
 
 LDAP_SERVER_URI = env_str('LDAP_SERVER_URI', '')
 LDAP_BIND_DN = env_str('LDAP_BIND_DN', '')
@@ -166,6 +184,7 @@ REQUIRED_CONFIGURATION = {
     'database': ['DATABASE_NAME', 'DATABASE_USER', 'DATABASE_PASSWORD', 'DATABASE_HOST'],
     'cucm': ['CUCM_AXL_HOST', 'CUCM_AXL_USERNAME', 'CUCM_AXL_PASSWORD', 'CUCM_AXL_VERSION'],
     'auth_entra': ['ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET', 'ENTRA_TENANT_ID', 'ENTRA_REDIRECT_URI'],
+    'auth_oidc': ['OIDC_CLIENT_ID', 'OIDC_CLIENT_SECRET', 'OIDC_METADATA_URL', 'OIDC_REDIRECT_URI'],
     'auth_ldap': ['LDAP_SERVER_URI', 'LDAP_BIND_DN', 'LDAP_BIND_PASSWORD', 'LDAP_USER_SEARCH_BASE'],
 }
 

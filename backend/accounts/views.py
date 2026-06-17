@@ -26,6 +26,8 @@ from accounts.serializers import (
 from accounts.services import (
     EntraOidcService,
     ExternalIdentityUnavailableError,
+    ExternalIdentityUnsupportedError,
+    GenericOidcService,
     IdentityValidationService,
     frontend_error_redirect,
     normalize_email,
@@ -49,6 +51,7 @@ class AuthOptionsView(APIView):
             {
                 'auth_mode': settings.AUTH_MODE,
                 'local_auth_enabled': settings.LOCAL_AUTH_ENABLED,
+                'external_auth_name': settings.EXTERNAL_AUTH_NAME,
             }
         )
 
@@ -177,6 +180,45 @@ class EntraCallbackView(APIView):
         return HttpResponseRedirect('/')
 
 
+class OidcLoginView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if settings.AUTH_MODE != 'oidc':
+            return Response({'message': 'OIDC authentication is not enabled.'}, status=status.HTTP_404_NOT_FOUND)
+        return GenericOidcService.authorize_redirect(request)
+
+
+class OidcCallbackView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        if settings.AUTH_MODE != 'oidc':
+            return HttpResponseRedirect(frontend_error_redirect('oidc_disabled'))
+
+        try:
+            identity = GenericOidcService.handle_callback(request)
+        except ExternalIdentityUnavailableError as exc:
+            return HttpResponseRedirect(frontend_error_redirect(str(exc)))
+
+        user = sync_external_user(identity)
+        if user is None or not user.is_active:
+            return HttpResponseRedirect(frontend_error_redirect('not_provisioned'))
+
+        login(request, user, backend=MODEL_BACKEND)
+        AuditService.record_event(
+            event_type=LOGIN_SUCCESS_EVENT,
+            result='success',
+            actor=user,
+            object_type='auth',
+            object_name='oidc',
+            message='OIDC login succeeded.',
+        )
+        return HttpResponseRedirect('/')
+
+
 class LogoutView(APIView):
     def post(self, request):
         AuditService.record_event(
@@ -200,6 +242,11 @@ class AdminUserValidateView(APIView):
 
         try:
             result = IdentityValidationService.validate_user(serializer.validated_data['email'])
+        except ExternalIdentityUnsupportedError:
+            return Response(
+                {'message': 'External user validation is not supported for this authentication provider.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except ExternalIdentityUnavailableError:
             return Response({'message': 'External identity provider is unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -217,6 +264,35 @@ class AdminUserValidateView(APIView):
 
 class AdminUserListCreateView(APIView):
     permission_classes = [IsAppAdmin]
+
+    @staticmethod
+    def _resolve_display_name(payload, email):
+        auth_source = payload['auth_source']
+        if auth_source in {AuthSource.LOCAL, AuthSource.OIDC}:
+            return payload['display_name'], None
+
+        try:
+            identity = IdentityValidationService.validate_user(email)
+        except ExternalIdentityUnsupportedError:
+            return (
+                None,
+                Response(
+                    {'message': 'External user validation is not supported for this authentication provider.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                ),
+            )
+        except ExternalIdentityUnavailableError:
+            return (
+                None,
+                Response(
+                    {'message': 'External identity provider is unavailable.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                ),
+            )
+
+        if not identity.exists or not identity.enabled:
+            return None, Response({'message': 'External user validation failed.'}, status=status.HTTP_400_BAD_REQUEST)
+        return identity.display_name or payload['display_name'], None
 
     def get(self, request):
         queryset = User.objects.all().order_by('email')
@@ -237,16 +313,9 @@ class AdminUserListCreateView(APIView):
         payload = serializer.validated_data
         email = normalize_email(payload['email'])
 
-        if payload['auth_source'] != AuthSource.LOCAL:
-            try:
-                identity = IdentityValidationService.validate_user(email)
-            except ExternalIdentityUnavailableError:
-                return Response({'message': 'External identity provider is unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
-            if not identity.exists or not identity.enabled:
-                return Response({'message': 'External user validation failed.'}, status=status.HTTP_400_BAD_REQUEST)
-            display_name = identity.display_name or payload['display_name']
-        else:
-            display_name = payload['display_name']
+        display_name, error_response = self._resolve_display_name(payload, email)
+        if error_response is not None:
+            return error_response
 
         user = User.objects.create_user(
             email=email,

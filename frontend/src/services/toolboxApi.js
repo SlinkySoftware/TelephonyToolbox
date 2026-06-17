@@ -25,8 +25,11 @@ export async function ldapLogin(payload) {
   return data
 }
 
-export function startEntraLogin() {
-  window.location.href = '/api/auth/login/entra/'
+export function startExternalLogin(authMode) {
+  if (authMode !== 'entra' && authMode !== 'oidc') {
+    return
+  }
+  window.location.href = `/api/auth/login/${authMode}/`
 }
 
 export async function logoutSession() {

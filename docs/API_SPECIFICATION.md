@@ -74,13 +74,15 @@ GET /api/auth/options/
 ```json
 {
   "auth_mode": "entra",
-  "local_auth_enabled": true
+  "local_auth_enabled": true,
+  "external_auth_name": "Entra"
 }
 ```
 
 **Fields**:
-- `auth_mode` — Primary auth provider: `"ldap"`, or `"entra"`
+- `auth_mode` — Primary auth provider: `"ldap"`, `"entra"`, or `"oidc"`
 - `local_auth_enabled` — Whether local user login is available (boolean)
+- `external_auth_name` — Friendly display name for the configured external provider
 
 **Use Case**: Frontend determines which login forms to display.
 
@@ -112,7 +114,7 @@ GET /api/auth/me/
 - `email` — Canonical user email
 - `display_name` — Human-readable name
 - `role` — `"standard_user"` or `"app_admin"`
-- `auth_source` — `"entra"`, `"ldap"`, or `"local"`
+- `auth_source` — `"entra"`, `"ldap"`, `"oidc"`, or `"local"`
 - `is_active` — Whether user can log in
 
 **Use Case**: Check current session status and load user-specific data (role, permissions).
@@ -299,6 +301,41 @@ Set-Cookie: sessionid=...
 4. Extract email and create/sync user
 5. Create Django session
 6. Redirect to appropriate dashboard
+
+---
+
+### Generic OIDC/OAuth Login Redirect
+
+```http
+GET /api/auth/login/oidc/
+```
+
+**Authentication**: None required
+
+**Response** (302 Redirect):
+
+Redirects to the configured provider authorization endpoint discovered from `OIDC_METADATA_URL`.
+
+**Use Case**: Step 1 of a generic OIDC login flow; frontend redirects the user here when `AUTH_MODE=oidc`.
+
+---
+
+### Generic OIDC/OAuth Callback
+
+```http
+GET /api/auth/login/oidc/callback/?code=...&state=...
+```
+
+**Authentication**: None required
+
+**Success Response** (302 Redirect):
+
+Redirects to `/` after Django session creation.
+
+**Notes**:
+- Claims are read from the provider response using `OIDC_EMAIL_CLAIM`, `OIDC_USERNAME_CLAIM`, and `OIDC_DISPLAY_NAME_CLAIM`
+- Users must already exist in the local Telephony Toolbox user table
+- Generic OIDC providers do not support the admin email validation endpoint unless they expose a separate directory API outside this integration
 
 ---
 

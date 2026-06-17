@@ -17,7 +17,7 @@ SPDX-License-Identifier: GPL-3.0-only
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg soft-grid">
-          <div>
+          <div v-if="supportsExternalValidation">
             <div class="text-subtitle2 text-orange-2">Validate external user</div>
             <div class="row q-col-gutter-sm q-mt-sm">
               <div class="col">
@@ -46,6 +46,15 @@ SPDX-License-Identifier: GPL-3.0-only
                 <strong>Display name:</strong>
                 {{ externalValidation.display_name || 'Not returned' }}
               </div>
+            </div>
+          </div>
+
+          <div v-else-if="externalAuthMode === 'oidc'" class="status-panel q-pa-md">
+            <div class="text-subtitle2 text-orange-2">{{ externalAuthLabel }} provisioning</div>
+            <div class="q-mt-sm">
+              Generic OIDC/OAuth providers do not expose a standard directory lookup API.
+              Provision users manually with the exact email address returned by
+              {{ externalAuthLabel }}.
             </div>
           </div>
 
@@ -218,12 +227,27 @@ const editingId = ref('')
 const userFormRef = ref(null)
 
 const form = ref(defaultFormState())
+const externalAuthMode = computed(() => session.authOptions?.auth_mode || 'entra')
+const externalAuthLabel = computed(() => {
+  if (session.authOptions?.external_auth_name) {
+    return session.authOptions.external_auth_name
+  }
+
+  switch (externalAuthMode.value) {
+    case 'ldap':
+      return 'LDAP'
+    case 'oidc':
+      return 'OpenID Connect'
+    default:
+      return 'Entra'
+  }
+})
+const supportsExternalValidation = computed(() => ['ldap', 'entra'].includes(externalAuthMode.value))
 
 const authSourceOptions = computed(() => {
-  const mode = session.authOptions?.auth_mode || 'entra'
   return [
     { label: 'Local', value: 'local' },
-    { label: mode === 'ldap' ? 'LDAP' : 'Entra', value: mode },
+    { label: externalAuthLabel.value, value: externalAuthMode.value },
   ]
 })
 
@@ -346,6 +370,14 @@ async function loadData() {
 }
 
 async function handleValidateExternalUser() {
+  if (!supportsExternalValidation.value) {
+    $q.notify({
+      type: 'warning',
+      message: `${externalAuthLabel.value} users must be provisioned manually.`,
+    })
+    return
+  }
+
   try {
     const result = await validateExternalUser(trimmedValidationEmail.value)
     externalValidation.value = result

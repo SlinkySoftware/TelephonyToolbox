@@ -30,6 +30,10 @@ class ExternalIdentityUnavailableError(ExternalIdentityError):
     """Raised when the configured identity provider is unavailable."""
 
 
+class ExternalIdentityUnsupportedError(ExternalIdentityError):
+    """Raised when the provider cannot satisfy the requested identity operation."""
+
+
 @dataclass(slots=True)
 class IdentityValidationResult:
     exists: bool
@@ -58,6 +62,18 @@ def _truthy(value):
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {'1', 'true', 'yes', 'y', 'active'}
+
+
+def _first_claim_value(claims, *names):
+    seen = set()
+    for name in names:
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        value = claims.get(name)
+        if value:
+            return value
+    return ''
 
 
 class LdapIdentityProvider:
@@ -186,6 +202,13 @@ class EntraIdentityProvider:
         return IdentityValidationResult(True, 'entra', actual_email, display_name, username, enabled)
 
 
+class GenericOidcIdentityProvider:
+    def validate_user(self, email: str) -> IdentityValidationResult:
+        raise ExternalIdentityUnsupportedError(
+            'External user validation is not supported for generic OIDC providers.'
+        )
+
+
 @lru_cache(maxsize=1)
 def get_entra_oauth_client():
     oauth = OAuth()
@@ -197,6 +220,19 @@ def get_entra_oauth_client():
         client_kwargs={'scope': 'openid profile email'},
     )
     return oauth.create_client('entra')
+
+
+@lru_cache(maxsize=1)
+def get_generic_oidc_oauth_client():
+    oauth = OAuth()
+    oauth.register(
+        'oidc',
+        client_id=settings.OIDC_CLIENT_ID,
+        client_secret=settings.OIDC_CLIENT_SECRET,
+        server_metadata_url=settings.OIDC_METADATA_URL,
+        client_kwargs={'scope': settings.OIDC_SCOPES},
+    )
+    return oauth.create_client('oidc')
 
 
 class EntraOidcService:
@@ -223,6 +259,51 @@ class EntraOidcService:
         return IdentityValidationResult(True, 'entra', email, display_name, username, True)
 
 
+class GenericOidcService:
+    @staticmethod
+    def authorize_redirect(request):
+        client = get_generic_oidc_oauth_client()
+        redirect_uri = settings.OIDC_REDIRECT_URI or request.build_absolute_uri(reverse('auth-oidc-callback'))
+        return client.authorize_redirect(request, redirect_uri)
+
+    @staticmethod
+    def handle_callback(request) -> IdentityValidationResult:
+        client = get_generic_oidc_oauth_client()
+        token = client.authorize_access_token(request)
+        claims = token.get('userinfo') or client.parse_id_token(request, token)
+        if claims is None:
+            raise ExternalIdentityUnavailableError('Unable to extract user claims from OIDC callback.')
+
+        email = normalize_email(
+            _first_claim_value(
+                claims,
+                settings.OIDC_EMAIL_CLAIM,
+                'email',
+                'preferred_username',
+                'upn',
+            )
+        )
+        if not email:
+            raise ExternalIdentityUnavailableError('OIDC callback did not include a usable email address.')
+
+        display_name = _first_claim_value(
+            claims,
+            settings.OIDC_DISPLAY_NAME_CLAIM,
+            'name',
+            'display_name',
+            settings.OIDC_USERNAME_CLAIM,
+            settings.OIDC_EMAIL_CLAIM,
+        ) or email
+        username = _first_claim_value(
+            claims,
+            settings.OIDC_USERNAME_CLAIM,
+            'preferred_username',
+            settings.OIDC_EMAIL_CLAIM,
+            'sub',
+        ) or email
+        return IdentityValidationResult(True, 'oidc', email, display_name, username, True)
+
+
 class IdentityValidationService:
     @staticmethod
     def current_provider():
@@ -230,6 +311,8 @@ class IdentityValidationService:
             return LdapIdentityProvider()
         if settings.AUTH_MODE == 'entra':
             return EntraIdentityProvider()
+        if settings.AUTH_MODE == 'oidc':
+            return GenericOidcIdentityProvider()
         raise ValueError(f'Unsupported AUTH_MODE: {settings.AUTH_MODE}')
 
     @classmethod

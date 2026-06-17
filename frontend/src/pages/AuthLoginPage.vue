@@ -50,7 +50,9 @@ SPDX-License-Identifier: GPL-3.0-only
             type="password"
             autocomplete="current-password"
           />
-          <div v-else class="muted-copy">Password is not required when signing in with Entra.</div>
+          <div v-else class="muted-copy">
+            Password is not required when continuing with {{ externalAuthLabel }}.
+          </div>
           <q-btn
             unelevated
             color="orange-6"
@@ -91,16 +93,33 @@ const transientError = ref('')
 
 const routeError = computed(() => (typeof route.query.error === 'string' ? route.query.error : ''))
 const errorMessage = computed(() => transientError.value || routeError.value)
+const externalAuthMode = computed(() => {
+  const authMode = session.authOptions?.auth_mode
+  return ['ldap', 'entra', 'oidc'].includes(authMode) ? authMode : ''
+})
+const externalAuthLabel = computed(() => {
+  if (session.authOptions?.external_auth_name) {
+    return session.authOptions.external_auth_name
+  }
+
+  switch (externalAuthMode.value) {
+    case 'ldap':
+      return 'LDAP'
+    case 'oidc':
+      return 'OpenID Connect'
+    case 'entra':
+      return 'Entra'
+    default:
+      return 'External Sign In'
+  }
+})
 
 const authMethodOptions = computed(() => {
   const options = []
-  const authMode = session.authOptions?.auth_mode
+  const authMode = externalAuthMode.value
 
-  if (authMode === 'ldap') {
-    options.push({ label: 'LDAP', value: 'ldap' })
-  }
-  if (authMode === 'entra') {
-    options.push({ label: 'Entra', value: 'entra' })
+  if (authMode) {
+    options.push({ label: externalAuthLabel.value, value: authMode })
   }
   if (session.authOptions?.local_auth_enabled || authMode === 'local') {
     options.push({ label: 'Local', value: 'local' })
@@ -116,11 +135,12 @@ const requiresPassword = computed(
 const submitLabel = computed(() => {
   switch (selectedAuthMethod.value) {
     case 'ldap':
-      return 'Sign in with LDAP'
+      return `Sign in with ${externalAuthLabel.value}`
     case 'local':
       return 'Sign in with Local'
     case 'entra':
-      return 'Continue with Entra'
+    case 'oidc':
+      return `Continue with ${externalAuthLabel.value}`
     default:
       return 'Sign in'
   }
@@ -139,7 +159,7 @@ watch(
 )
 
 watch(selectedAuthMethod, (value) => {
-  if (value === 'entra') {
+  if (value !== 'ldap' && value !== 'local') {
     credentials.value.password = ''
   }
 })
@@ -178,15 +198,15 @@ async function handleSignIn() {
       return
     }
 
-    session.beginEntraLogin()
+    session.beginExternalLogin()
   } catch (error) {
     transientError.value = extractApiMessage(
       error,
       method === 'ldap'
-        ? 'LDAP sign-in failed.'
+        ? `Unable to sign in with ${externalAuthLabel.value}.`
         : method === 'local'
           ? 'Local sign-in failed.'
-          : 'Entra sign-in failed.',
+          : `Unable to continue with ${externalAuthLabel.value}.`,
     )
   } finally {
     submittingMethod.value = ''

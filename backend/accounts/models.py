@@ -11,6 +11,7 @@ from telephony_toolbox.models import UUIDTimestampedModel
 class AuthSource(models.TextChoices):
     ENTRA = 'entra', 'Entra'
     LDAP = 'ldap', 'LDAP'
+    OIDC = 'oidc', 'OIDC/OAuth'
     LOCAL = 'local', 'Local'
 
 
