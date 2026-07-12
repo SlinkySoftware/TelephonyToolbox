@@ -511,13 +511,40 @@ EOF
   chmod 644 "$SYSTEMD_SERVICE_PATH"
 }
 
+ensure_nginx_sites_include() {
+  # Additively enable the sites-enabled include without clobbering an existing
+  # admin-managed conf.d file. Only create or append if the include is absent.
+  local include_line="include $NGINX_SITES_ENABLED_DIR/*.conf;"
+
+  if [[ -f "$NGINX_SITES_INCLUDE" ]]; then
+    if grep -qF "$NGINX_SITES_ENABLED_DIR/" "$NGINX_SITES_INCLUDE"; then
+      log "Existing sites-enabled include detected, leaving unchanged: $NGINX_SITES_INCLUDE"
+      return
+    fi
+    log "Appending sites-enabled include to existing file: $NGINX_SITES_INCLUDE"
+    printf '%s\n' "$include_line" >> "$NGINX_SITES_INCLUDE"
+  else
+    log "Creating sites-enabled include: $NGINX_SITES_INCLUDE"
+    printf '%s\n' "$include_line" > "$NGINX_SITES_INCLUDE"
+  fi
+
+  chmod 644 "$NGINX_SITES_INCLUDE"
+}
+
 write_nginx_site() {
+  local backup_path=""
+
   log "Writing nginx site configuration: $NGINX_SITE_AVAILABLE_PATH"
   install -d -m 755 "$NGINX_SITES_AVAILABLE_DIR" "$NGINX_SITES_ENABLED_DIR"
 
-  cat > "$NGINX_SITES_INCLUDE" <<EOF
-include $NGINX_SITES_ENABLED_DIR/*.conf;
-EOF
+  ensure_nginx_sites_include
+
+  # Back up any existing Telephony Toolbox site so a bad render can be rolled
+  # back without disturbing other virtual servers on this node.
+  if [[ -f "$NGINX_SITE_AVAILABLE_PATH" ]]; then
+    backup_path="${NGINX_SITE_AVAILABLE_PATH}.bak.$(date +%Y%m%d%H%M%S)"
+    cp -a "$NGINX_SITE_AVAILABLE_PATH" "$backup_path"
+  fi
 
   cat > "$NGINX_SITE_AVAILABLE_PATH" <<EOF
 server {
@@ -562,6 +589,20 @@ EOF
 
   chmod 644 "$NGINX_SITE_AVAILABLE_PATH" "$NGINX_SITES_INCLUDE"
   ln -sfn "$NGINX_SITE_AVAILABLE_PATH" "$NGINX_SITE_ENABLED_PATH"
+
+  # Validate before leaving the new config in place. If our site is invalid,
+  # restore the previous version (or remove the symlink) so nginx keeps serving
+  # any other virtual servers hosted on this node.
+  if ! nginx -t; then
+    log "nginx configuration test failed after writing $NGINX_SITE_NAME; rolling back Telephony Toolbox site"
+    if [[ -n "$backup_path" && -f "$backup_path" ]]; then
+      cp -a "$backup_path" "$NGINX_SITE_AVAILABLE_PATH"
+    else
+      rm -f "$NGINX_SITE_AVAILABLE_PATH" "$NGINX_SITE_ENABLED_PATH"
+    fi
+    nginx -t
+    die "Refusing to continue with an invalid nginx configuration."
+  fi
 }
 
 write_logrotate_config() {
