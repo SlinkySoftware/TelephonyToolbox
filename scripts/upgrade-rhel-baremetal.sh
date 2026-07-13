@@ -5,7 +5,11 @@
 set -euo pipefail
 
 APP_USER="${APP_USER:-telephonytoolbox}"
-APP_DIR="${APP_DIR:-/opt/telephonytoolbox}"
+# Derive the application directory from this script's location (the parent of
+# the scripts/ directory) so upgrades work regardless of the install path.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+export APP_DIR
 STAGE2_SCRIPT="$APP_DIR/scripts/upgrade-rhel-baremetal-stage2.sh"
 
 log() {
