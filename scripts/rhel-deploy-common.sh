@@ -337,6 +337,11 @@ DJANGO_LOG_FILE=$LOG_DIR/application.log
 DJANGO_LOG_LEVEL=INFO
 CSRF_TRUSTED_ORIGINS=http://$APP_HOSTNAME,https://$APP_HOSTNAME
 
+# TLS trust: point Python HTTP stacks at the RHEL OS CA trust store so that
+# internal-CA-signed endpoints (e.g. OIDC providers) validate correctly.
+REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/ca-bundle.crt
+SSL_CERT_FILE=/etc/pki/tls/certs/ca-bundle.crt
+
 DATABASE_HOST=127.0.0.1
 DATABASE_PORT=5432
 DATABASE_NAME=telephonytoolbox
@@ -381,6 +386,8 @@ EOF
 
   ensure_env_key "DJANGO_LOG_LEVEL" "INFO"
   ensure_env_key "DJANGO_DEBUG" "false"
+  ensure_env_key "REQUESTS_CA_BUNDLE" "/etc/pki/tls/certs/ca-bundle.crt"
+  ensure_env_key "SSL_CERT_FILE" "/etc/pki/tls/certs/ca-bundle.crt"
   ensure_env_key "DATABASE_HOST" "127.0.0.1"
   ensure_env_key "DATABASE_PORT" "5432"
   ensure_env_key "DATABASE_NAME" "telephonytoolbox"
