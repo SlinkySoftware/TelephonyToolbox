@@ -146,6 +146,29 @@ npm --prefix frontend run dev
 
 ## Running Services
 
+### Development Run Script
+
+The repository includes a local lifecycle script that loads the git-ignored `.env` file from the repository root and starts both development servers:
+
+```bash
+scripts/dev.sh start
+```
+
+Useful commands:
+
+```bash
+scripts/dev.sh status
+scripts/dev.sh restart backend
+scripts/dev.sh stop frontend
+scripts/dev.sh stop
+```
+
+Logs are written under `var/log/dev/` and process IDs are tracked under `var/run/`. To use a different local environment file, pass `--env FILE`:
+
+```bash
+scripts/dev.sh --env .env.local start
+```
+
 ### Backend Development Server
 
 ```bash

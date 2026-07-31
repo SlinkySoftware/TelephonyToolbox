@@ -87,12 +87,16 @@ It is designed to be extensible so that if core telephony platforms are later mo
 7. Start the development servers:
 
 	```bash
-	# Terminal 1: Backend on http://localhost:8000
-	python backend/manage.py runserver 0.0.0.0:8000
+	# Starts backend on http://localhost:8000 and frontend on http://localhost:9000
+	scripts/dev.sh start
 
-	# Terminal 2: Frontend on http://localhost:9000 (proxies /api to backend)
-	npm --prefix frontend run dev
+	# Stop both development servers
+	scripts/dev.sh stop
 	```
+
+	The script loads the repository-local `.env` file, which is excluded from git.
+	Use `scripts/dev.sh status`, `scripts/dev.sh restart backend`, or
+	`scripts/dev.sh stop frontend` to control individual services.
 
 ### Testing
 
