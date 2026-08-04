@@ -200,7 +200,6 @@ For more details, see [DEVELOPMENT.md](docs/DEVELOPMENT.md) and [DEPLOYMENT.md](
 - Upgrade existing RHEL 9 deployment: [scripts/upgrade-rhel-baremetal.sh](scripts/upgrade-rhel-baremetal.sh)
 - Environment template: [scripts/env.example](scripts/env.example)
 - Systemd template: [scripts/templates/telephonytoolbox-gunicorn.service.template](scripts/templates/telephonytoolbox-gunicorn.service.template)
-- nginx template: [scripts/templates/telephonytoolbox.nginx.conf.template](scripts/templates/telephonytoolbox.nginx.conf.template)
 
 The RHEL install flow defaults to `/opt/telephonytoolbox`, binds Gunicorn to `127.0.0.1:8010`, creates a dedicated nginx site under `sites-enabled`, and prompts for `APP_HOSTNAME` when it is not already supplied in the environment.
 

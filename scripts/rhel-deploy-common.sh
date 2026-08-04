@@ -556,7 +556,6 @@ write_nginx_site() {
   cat > "$NGINX_SITE_AVAILABLE_PATH" <<EOF
 server {
     listen 80;
-    listen [::]:80;
     server_name $APP_HOSTNAME;
 
     root $FRONTEND_SPA_DIR;
