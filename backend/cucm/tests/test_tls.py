@@ -72,6 +72,30 @@ def test_cucm_14_keeps_default_https_adapter(monkeypatch, fake_zeep):
 
 
 @pytest.mark.django_db
+def test_verify_tls_false_disables_trust_env(settings, fake_zeep):
+    settings.CUCM_AXL_VERIFY_TLS = False
+
+    Cucm14Client('cucm.example.test', 'user', 'pass')
+
+    session = fake_zeep['session']
+    assert session.verify is False
+    # trust_env must be disabled so REQUESTS_CA_BUNDLE / SSL_CERT_FILE do not
+    # override verify=False and silently re-enable certificate verification.
+    assert session.trust_env is False
+
+
+@pytest.mark.django_db
+def test_verify_tls_true_preserves_trust_env(settings, fake_zeep):
+    settings.CUCM_AXL_VERIFY_TLS = True
+
+    Cucm14Client('cucm.example.test', 'user', 'pass')
+
+    session = fake_zeep['session']
+    assert session.verify is True
+    assert session.trust_env is True
+
+
+@pytest.mark.django_db
 def test_cucm_105_wraps_requests_tls_errors_as_unavailable(monkeypatch):
     class DummyService:
         def get_ccm_version(self):

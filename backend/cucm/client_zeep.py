@@ -57,6 +57,12 @@ class ZeepCucmClient(CucmClient):
         session: Session = requests.Session()
         session.auth = HTTPBasicAuth(self.username, self.password)
         session.verify = settings.CUCM_AXL_VERIFY_TLS
+        if not settings.CUCM_AXL_VERIFY_TLS:
+            # Prevent REQUESTS_CA_BUNDLE / SSL_CERT_FILE environment variables from
+            # overriding the explicit verify=False. requests merges the env CA bundle
+            # into the per-request verify setting, which otherwise wins over the
+            # session-level False and re-enables certificate verification.
+            session.trust_env = False
         self._configure_session(session)
         return session
 
