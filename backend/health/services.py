@@ -45,7 +45,7 @@ def _cucm_status():
             'version': result.version or settings.CUCM_AXL_VERSION,
             'route_partition': settings.CUCM_ROUTE_PARTITION,
         }
-    except CucmAuthenticationError as exc:
+    except (CucmAuthenticationError, CucmUnavailableError) as exc:
         return {
             'status': 'failure',
             'host': 'configured',
@@ -53,7 +53,7 @@ def _cucm_status():
             'route_partition': settings.CUCM_ROUTE_PARTITION,
             'message': str(exc),
         }
-    except CucmUnavailableError as exc:
+    except Exception as exc:
         return {
             'status': 'failure',
             'host': 'configured',
@@ -101,3 +101,16 @@ def build_admin_health_report():
         'auth': _auth_status(),
         'environment': _required_env_status(),
     }
+
+
+def build_liveness_report():
+    database = _database_status()
+    cucm = _cucm_status()
+    healthy = database['status'] == 'ok' and cucm['status'] == 'ok'
+    return {
+        'status': 'healthy' if healthy else 'unhealthy',
+        'checks': {
+            'database': database,
+            'cucm': cucm,
+        },
+    }, healthy
