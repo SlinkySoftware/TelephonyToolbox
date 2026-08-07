@@ -39,6 +39,9 @@ CUCM_AXL_PASSWORD = env_str('CUCM_AXL_PASSWORD', '')
 CUCM_AXL_VERSION = env_str('CUCM_AXL_VERSION', '14')
 CUCM_ROUTE_PARTITION = env_str('CUCM_ROUTE_PARTITION', 'INTERNAL')
 CUCM_AXL_VERIFY_TLS = env_bool('CUCM_AXL_VERIFY_TLS', True)
+# Seconds to cache the CUCM availability status shown on front-end diversion
+# views. Set to 0 to probe CUCM live on every request.
+CUCM_STATUS_CACHE_SECONDS = env_int('CUCM_STATUS_CACHE_SECONDS', 10)
 
 AUDIT_RETENTION_DAYS = env_int('AUDIT_RETENTION_DAYS', 90)
 

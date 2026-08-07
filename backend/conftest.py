@@ -11,6 +11,18 @@ from diversions.models import Diversion
 TEST_LOGIN_SECRET = 'Passw0rd!'
 
 
+@pytest.fixture(autouse=True)
+def _reset_cucm_client():
+    from cucm import factory
+    from diversions import services
+
+    factory.reset_cucm_client()
+    services.reset_cucm_status_cache()
+    yield
+    factory.reset_cucm_client()
+    services.reset_cucm_status_cache()
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

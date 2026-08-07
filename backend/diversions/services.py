@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: Copyright 2026, Slinky Software
 # SPDX-License-Identifier: GPL-3.0-only
 
+import threading
+import time
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -17,12 +20,44 @@ CUCM_UNAVAILABLE_MESSAGE = (
 )
 
 
-def cucm_status_value():
+# The CUCM status is displayed on every diversion list/detail response the
+# front-end renders. Probing CUCM live on each request adds a SOAP round-trip
+# to user-facing calls, so the result is cached for a short window. The F5 load
+# balancer health check performs its own live probe and does not use this cache.
+_status_lock = threading.Lock()
+_status_cache = {'value': None, 'expires_at': 0.0}
+
+
+def _probe_cucm_status():
     try:
         get_cucm_client().health_check()
         return 'available'
     except Exception:
         return 'unavailable'
+
+
+def cucm_status_value():
+    ttl = getattr(settings, 'CUCM_STATUS_CACHE_SECONDS', 10)
+    if ttl <= 0:
+        return _probe_cucm_status()
+
+    now = time.monotonic()
+    with _status_lock:
+        if _status_cache['value'] is not None and now < _status_cache['expires_at']:
+            return _status_cache['value']
+
+    value = _probe_cucm_status()
+    with _status_lock:
+        _status_cache['value'] = value
+        _status_cache['expires_at'] = time.monotonic() + ttl
+    return value
+
+
+def reset_cucm_status_cache():
+    """Discard the cached CUCM status so the next call probes live."""
+    with _status_lock:
+        _status_cache['value'] = None
+        _status_cache['expires_at'] = 0.0
 
 
 def validation_response(raw_destination: str):
