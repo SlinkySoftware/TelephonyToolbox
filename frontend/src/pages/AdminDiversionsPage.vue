@@ -8,10 +8,6 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Manage Diversions</h1>
-      <p class="page-subtitle">
-        Validate source DNs against CUCM, create local diversion records and keep group ownership
-        explicit.
-      </p>
     </section>
 
     <div class="row q-col-gutter-lg">

@@ -8,9 +8,6 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Manage Groups</h1>
-      <p class="page-subtitle">
-        Shape the local access model without exposing unrelated diversions to standard users.
-      </p>
     </section>
 
     <div class="row q-col-gutter-lg">

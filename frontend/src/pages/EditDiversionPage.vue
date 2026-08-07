@@ -9,8 +9,8 @@ SPDX-License-Identifier: GPL-3.0-only
       <div class="section-kicker">Update Forwarding</div>
       <h1 class="page-title">{{ diversion?.name || 'Edit Diversion' }}</h1>
       <p class="page-subtitle">
-        Enter a destination and confirm the update. The application validates and normalises the
-        number before CUCM is updated, then reports success only after read-back confirmation.
+        Enter a destination and confirm the update. The application validates the
+        number before updating the phony system.
       </p>
     </section>
 
@@ -18,7 +18,7 @@ SPDX-License-Identifier: GPL-3.0-only
       v-if="diversion?.cucm_status !== 'available'"
       class="warning-banner text-white q-pa-md"
     >
-      CUCM is currently unavailable. Cached diversion information is displayed and updates are
+      The phone system is currently unavailable. Cached diversion information is displayed and updates are
       temporarily disabled.
     </q-banner>
 
@@ -28,7 +28,7 @@ SPDX-License-Identifier: GPL-3.0-only
           <div class="text-subtitle2 text-primary">Current state</div>
           <div class="q-mt-md muted-copy">Source DN</div>
           <div class="text-h6">{{ diversion?.source_number }}</div>
-          <div class="q-mt-md muted-copy">Cached destination</div>
+          <div class="q-mt-md muted-copy">Current destination</div>
           <div class="text-h6">{{ diversion?.cached_current_destination || 'None recorded' }}</div>
           <div class="q-mt-md muted-copy">Last refreshed</div>
           <div>{{ formatDateTime(diversion?.last_refreshed_at) }}</div>

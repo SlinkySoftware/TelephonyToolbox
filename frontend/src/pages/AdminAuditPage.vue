@@ -8,9 +8,6 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Audit Log</h1>
-      <p class="page-subtitle">
-        Filter operational history and export the currently selected window to CSV.
-      </p>
     </section>
 
     <section class="form-panel q-pa-lg soft-grid">

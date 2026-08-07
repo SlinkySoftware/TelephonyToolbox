@@ -8,10 +8,6 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">Manage Users</h1>
-      <p class="page-subtitle">
-        Validate external identities, provision local fallback users, assign roles and bind access
-        groups.
-      </p>
     </section>
 
     <div class="row q-col-gutter-lg">

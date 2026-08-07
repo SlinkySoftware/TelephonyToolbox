@@ -12,11 +12,6 @@ SPDX-License-Identifier: GPL-3.0-only
 
       <section class="form-panel q-pa-xl login-card">
         <div class="section-kicker">Sign In</div>
-        <div class="text-h5 q-mt-sm">Access the control surface</div>
-        <p class="muted-copy q-mt-sm">
-          Select the authentication method available for this deployment, then continue with the
-          matching sign-in flow.
-        </p>
 
         <q-banner v-if="errorMessage" class="warning-banner q-mb-md text-white">
           {{ errorMessage }}

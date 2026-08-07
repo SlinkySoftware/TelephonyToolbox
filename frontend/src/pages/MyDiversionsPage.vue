@@ -6,12 +6,8 @@ SPDX-License-Identifier: GPL-3.0-only
 <template>
   <q-page class="page-frame soft-grid">
     <section class="page-hero">
-      <div class="section-kicker">Assigned Work</div>
+      <div class="section-kicker">Call Forwarding</div>
       <h1 class="page-title">My Diversions</h1>
-      <p class="page-subtitle">
-        Refresh live state from CUCM, inspect the cached forwarding destination, and update only the
-        lines you’re authorised to control.
-      </p>
     </section>
 
     <q-banner v-if="cucmUnavailable" class="warning-banner text-white q-pa-md">
@@ -98,7 +94,7 @@ const columns = [
   { name: 'source_number', label: 'Source DN', field: 'source_number', align: 'left' },
   {
     name: 'cached_current_destination',
-    label: 'Cached destination',
+    label: 'Current destination',
     field: 'cached_current_destination',
     align: 'left',
   },

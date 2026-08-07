@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
           <div class="brand-lockup">
             <div class="brand-kicker">Telephony Operations</div>
-            <div class="brand-title">Telephony Toolbox</div>
+            <div class="brand-title">Telephony Toolbox</div>  
           </div>
         </div>
 
@@ -98,7 +98,7 @@ const primaryLinks = computed(() => [
   {
     to: '/diversions',
     label: 'My Diversions',
-    caption: 'Refresh and update assigned call forwards',
+    caption: 'Refresh and update assigned call diversions',
     icon: 'call_split',
   },
 ])
@@ -112,31 +112,31 @@ const adminLinks = computed(() => {
     {
       to: '/admin/diversions',
       label: 'Diversions',
-      caption: 'Create and assign source numbers',
+      caption: 'Create and assign diversion numbers',
       icon: 'phone_forwarded',
     },
     {
       to: '/admin/users',
       label: 'Users',
-      caption: 'Provision and retire operators',
+      caption: 'Provision local and integrated accounts',
       icon: 'badge',
     },
     {
       to: '/admin/groups',
       label: 'Groups',
-      caption: 'Manage local access boundaries',
+      caption: 'Manage diversion access grouping',
       icon: 'groups_2',
     },
     {
       to: '/admin/audit',
       label: 'Audit Log',
-      caption: 'Export operational history',
+      caption: 'Export platform operational history',
       icon: 'history_edu',
     },
     {
       to: '/admin/health',
       label: 'System Health',
-      caption: 'Inspect database, auth and CUCM status',
+      caption: 'Check system status and connectivity',
       icon: 'monitor_heart',
     },
   ]

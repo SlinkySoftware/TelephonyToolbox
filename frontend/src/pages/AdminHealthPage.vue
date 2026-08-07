@@ -8,10 +8,6 @@ SPDX-License-Identifier: GPL-3.0-only
     <section class="page-hero">
       <div class="section-kicker">App Admin</div>
       <h1 class="page-title">System Health</h1>
-      <p class="page-subtitle">
-        Inspect application, database, CUCM and authentication readiness without exposing secret
-        values.
-      </p>
     </section>
 
     <div class="metric-grid" v-if="health">
