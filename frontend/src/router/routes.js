@@ -23,7 +23,7 @@ const routes = [
       },
       {
         path: 'admin',
-        component: () => import('pages/AdminDashboardPage.vue'),
+        redirect: '/admin/diversions',
         meta: { adminOnly: true },
       },
       {

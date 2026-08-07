@@ -37,7 +37,7 @@ SPDX-License-Identifier: GPL-3.0-only
     </div>
 
     <section v-if="health" class="status-panel q-pa-lg">
-      <div class="text-subtitle2 text-orange-2">Environment readiness</div>
+      <div class="text-subtitle2 text-primary">Environment readiness</div>
       <div class="q-mt-sm">
         Required variables present:
         {{ health.environment.required_variables_present ? 'Yes' : 'No' }}

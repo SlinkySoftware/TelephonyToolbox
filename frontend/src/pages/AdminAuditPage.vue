@@ -28,8 +28,8 @@ SPDX-License-Identifier: GPL-3.0-only
           <q-input v-model="filters.source_number" filled dense label="Source number" />
         </div>
         <div class="col-12 col-md-3 row q-gutter-sm items-start">
-          <q-btn color="orange-6" text-color="black" label="Apply filters" @click="loadAudit" />
-          <q-btn outline color="orange-3" label="Export CSV" :href="exportUrl" target="_blank" />
+          <q-btn color="primary" text-color="white" label="Apply filters" @click="loadAudit" />
+          <q-btn outline color="primary" label="Export CSV" :href="exportUrl" target="_blank" />
         </div>
       </div>
     </section>

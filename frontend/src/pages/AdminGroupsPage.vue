@@ -16,7 +16,7 @@ SPDX-License-Identifier: GPL-3.0-only
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg">
-          <div class="text-subtitle2 text-orange-2">
+          <div class="text-subtitle2 text-primary">
             {{ editingId ? 'Edit group' : 'Create group' }}
           </div>
           <q-form ref="groupFormRef" class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveGroup">
@@ -37,13 +37,13 @@ SPDX-License-Identifier: GPL-3.0-only
             />
             <div class="row q-gutter-sm">
               <q-btn
-                color="orange-6"
-                text-color="black"
+                color="primary"
+                text-color="white"
                 :label="editingId ? 'Update group' : 'Create group'"
                 type="submit"
                 :disable="!canSubmitGroup"
               />
-              <q-btn flat color="grey-4" label="Reset" @click="resetForm" />
+              <q-btn flat color="grey-7" label="Reset" @click="resetForm" />
             </div>
           </q-form>
         </section>
@@ -66,7 +66,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="edit"
-                  color="orange-3"
+                  color="primary"
                   @click="beginEdit(props.row)"
                 />
                 <q-btn
@@ -74,7 +74,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="delete"
-                  color="red-3"
+                  color="negative"
                   @click="handleDeleteGroup(props.row)"
                 />
               </q-td>

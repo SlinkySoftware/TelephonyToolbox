@@ -6,24 +6,41 @@
 @import '@fontsource/ibm-plex-sans/400.css';
 @import '@fontsource/ibm-plex-sans/500.css';
 @import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/fraunces/600.css';
 
 :root {
-  --tt-bg: #171411;
-  --tt-bg-gradient:
-    radial-gradient(circle at top left, rgba(239, 154, 72, 0.18), transparent 34%),
-    radial-gradient(circle at bottom right, rgba(255, 215, 171, 0.14), transparent 28%),
-    linear-gradient(145deg, #100d0b 0%, #171411 42%, #1b1611 100%);
-  --tt-surface: rgba(32, 27, 23, 0.88);
-  --tt-surface-strong: #261f1a;
-  --tt-panel: rgba(250, 241, 228, 0.07);
-  --tt-border: rgba(244, 210, 159, 0.18);
-  --tt-text: #f7f0e7;
-  --tt-muted: #cfbda7;
-  --tt-accent: #ef9a48;
-  --tt-accent-soft: #ffd7ab;
-  --tt-danger: #ff8d73;
-  --tt-success: #8dd7a5;
+  /* Core backgrounds */
+  --tt-bg: #f4f6f9;
+  --tt-bg-gradient: none;
+  --tt-surface: #ffffff;
+  --tt-surface-strong: #ffffff;
+  --tt-panel: #f8fafc;
+  --tt-border: #cbd5e1;
+
+  /* Typography */
+  --tt-text: #1a202c;
+  --tt-muted: #4a5568;
+  --tt-subtle: #718096;
+
+  /* Brand accents */
+  --tt-accent: #0066cc;
+  --tt-accent-hover: #0052a3;
+  --tt-accent-soft: #0066cc;
+  --tt-accent-tint: #e6f0fa;
+
+  /* Status */
+  --tt-danger: #c53030;
+  --tt-success: #2f855a;
+  --tt-warning: #dd6b20;
+
+  /* Header / sidebar */
+  --tt-header-bg: #e2e8f0;
+  --tt-sidebar-bg: #ebf0f5;
+
+  /* Data table */
+  --tt-table-header-bg: #f1f5f9;
+  --tt-table-row-even: #ffffff;
+  --tt-table-row-odd: #f8fafc;
+  --tt-table-row-hover: #edf2f7;
 }
 
 html,
@@ -54,9 +71,9 @@ body {
 }
 
 .app-header {
-  background: rgba(14, 11, 9, 0.92);
+  background: var(--tt-header-bg);
   border-bottom: 1px solid var(--tt-border);
-  backdrop-filter: blur(20px);
+  color: var(--tt-text);
 }
 
 .toolbar-pad {
@@ -96,7 +113,7 @@ body {
 .brand-kicker,
 .drawer-kicker,
 .section-kicker {
-  color: var(--tt-accent-soft);
+  color: var(--tt-accent);
   font-size: 0.72rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -105,7 +122,9 @@ body {
 .brand-title,
 .drawer-title,
 .page-title {
-  font-family: 'Fraunces', serif;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  color: var(--tt-text);
 }
 
 .brand-title {
@@ -118,7 +137,7 @@ body {
 }
 
 .toolbar-role {
-  color: var(--tt-accent-soft);
+  color: var(--tt-muted);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.16em;
@@ -132,7 +151,7 @@ body {
 .logout-btn {
   border: 1px solid var(--tt-border);
   border-radius: 999px;
-  color: var(--tt-accent-soft);
+  color: var(--tt-accent);
 }
 
 @media (max-width: 599px) {
@@ -147,7 +166,7 @@ body {
 }
 
 .app-drawer {
-  background: rgba(18, 15, 13, 0.95);
+  background: var(--tt-sidebar-bg);
   color: var(--tt-text);
   border-right: 1px solid var(--tt-border);
 }
@@ -167,18 +186,29 @@ body {
 }
 
 .drawer-list .q-item__label--caption {
-  color: rgb(240, 180, 120);
+  color: var(--tt-subtle);
 }
 
 .nav-item {
   margin: 0 0.8rem 0.5rem;
-  border-radius: 18px;
-  color: var(--tt-text);
+  border-radius: 8px;
+  color: var(--tt-muted);
+}
+
+.nav-item .q-icon {
+  color: var(--tt-muted);
 }
 
 .nav-item.q-router-link--active {
-  background: linear-gradient(135deg, rgba(239, 154, 72, 0.22), rgba(255, 215, 171, 0.12));
-  border: 1px solid var(--tt-border);
+  background: var(--tt-accent-tint);
+  border-left: 4px solid var(--tt-accent);
+  color: var(--tt-accent);
+  font-weight: 600;
+}
+
+.nav-item.q-router-link--active .q-icon,
+.nav-item.q-router-link--active .q-item__label--caption {
+  color: var(--tt-accent);
 }
 
 .page-stage {
@@ -200,9 +230,9 @@ body {
   margin-bottom: 1.25rem;
   padding: 1.6rem;
   border: 1px solid var(--tt-border);
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(42, 34, 28, 0.96), rgba(24, 20, 17, 0.9));
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.24);
+  border-radius: 12px;
+  background: var(--tt-surface);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .page-title {
@@ -223,8 +253,8 @@ body {
 .status-panel {
   background: var(--tt-surface);
   border: 1px solid var(--tt-border);
-  border-radius: 24px;
-  backdrop-filter: blur(18px);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 .soft-grid {
@@ -245,6 +275,7 @@ body {
 .metric-value {
   font-size: 2rem;
   font-weight: 600;
+  color: var(--tt-text);
 }
 
 .muted-copy {
@@ -252,9 +283,9 @@ body {
 }
 
 .warning-banner {
-  border-radius: 18px;
-  border: 1px solid rgba(255, 141, 115, 0.35);
-  background: rgba(92, 42, 28, 0.48);
+  border-radius: 8px;
+  border: 1px solid rgba(221, 107, 32, 0.4);
+  background: var(--tt-warning);
 }
 
 .q-table {
@@ -268,11 +299,15 @@ body {
 .q-table tbody,
 .q-table tr,
 .q-table__bottom {
-  background: rgba(38, 31, 26, 0.88);
+  background: var(--tt-table-row-even);
 }
 
 .q-table tbody tr:nth-child(2n) {
-  background: rgba(26, 22, 18, 0.92);
+  background: var(--tt-table-row-odd);
+}
+
+.q-table tbody tr:hover {
+  background: var(--tt-table-row-hover);
 }
 
 .q-table th,
@@ -280,10 +315,16 @@ body {
   color: var(--tt-text);
 }
 
+.q-table thead tr,
 .q-table th {
-  font-weight: 700;
-  color: var(--tt-accent-soft);
+  background: var(--tt-table-header-bg);
+}
+
+.q-table th {
+  font-weight: 600;
+  color: var(--tt-text);
   letter-spacing: 0.01em;
+  border-bottom: 2px solid var(--tt-border);
 }
 
 .q-table__bottom,
@@ -301,16 +342,16 @@ body {
 }
 
 .q-table__bottom .q-field__control {
-  background: rgba(38, 31, 26, 0.92);
+  background: #ffffff;
   border: 1px solid var(--tt-border);
 }
 
 .q-table__bottom .q-select__dropdown-icon {
-  color: var(--tt-accent-soft);
+  color: var(--tt-accent);
 }
 
 .q-menu {
-  background: rgba(38, 31, 26, 0.98);
+  background: #ffffff;
   color: var(--tt-text);
   border: 1px solid var(--tt-border);
 }
@@ -321,13 +362,19 @@ body {
 
 .q-menu .q-item.q-manual-focusable--focused,
 .q-menu .q-item.q-item--active {
-  background: rgba(239, 154, 72, 0.2);
+  background: var(--tt-accent-tint);
 }
 
 .q-field--filled .q-field__control,
 .q-input .q-field__control,
 .q-select .q-field__control {
-  background: rgba(89, 110, 79, 0.28);
+  background: #ffffff;
+  border: 1px solid var(--tt-border);
+  border-radius: 6px;
+}
+
+.q-field--filled .q-field__control::before {
+  border-bottom: none;
 }
 
 .q-field__native,
@@ -339,20 +386,24 @@ body {
   color: var(--tt-text);
 }
 
+.q-field__label {
+  color: var(--tt-muted);
+}
+
 .q-field__bottom,
 .q-field__messages,
 .q-field__messages div,
 .q-field__counter {
-  color: #d2b28f;
+  color: var(--tt-subtle);
 }
 
 .q-dialog__inner > div {
-  background: #211b17;
+  background: #ffffff;
   color: var(--tt-text);
 }
 
 .q-dialog__backdrop {
-  background: rgba(12, 9, 7, 0.78);
+  background: rgba(15, 23, 42, 0.32);
 }
 
 @media (max-width: 767px) {

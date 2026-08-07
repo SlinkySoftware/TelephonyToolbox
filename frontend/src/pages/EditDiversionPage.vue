@@ -25,7 +25,7 @@ SPDX-License-Identifier: GPL-3.0-only
     <div class="row q-col-gutter-lg">
       <div class="col-12 col-lg-5">
         <section class="card-panel q-pa-lg">
-          <div class="text-subtitle2 text-orange-2">Current state</div>
+          <div class="text-subtitle2 text-primary">Current state</div>
           <div class="q-mt-md muted-copy">Source DN</div>
           <div class="text-h6">{{ diversion?.source_number }}</div>
           <div class="q-mt-md muted-copy">Cached destination</div>
@@ -47,7 +47,7 @@ SPDX-License-Identifier: GPL-3.0-only
             />
 
             <div v-if="validationResult" class="status-panel q-pa-md">
-              <div class="text-subtitle2 text-orange-2">Validation result</div>
+              <div class="text-subtitle2 text-primary">Validation result</div>
               <div class="q-mt-sm">
                 <strong v-if="validationResult.is_valid">Normalised destination:</strong>
                 <strong v-else>Error:</strong>
@@ -57,14 +57,14 @@ SPDX-License-Identifier: GPL-3.0-only
 
             <div class="row q-gutter-sm">
               <q-btn
-                color="orange-6"
-                text-color="black"
+                color="primary"
+                text-color="white"
                 label="Save diversion"
                 type="submit"
                 :disable="diversion?.cucm_status !== 'available'"
                 :loading="validating || saving"
               />
-              <q-btn flat color="grey-4" label="Back" @click="router.push('/diversions')" />
+              <q-btn flat color="grey-7" label="Back" @click="router.push('/diversions')" />
             </div>
           </q-form>
         </section>
@@ -86,7 +86,7 @@ SPDX-License-Identifier: GPL-3.0-only
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancel" v-close-popup />
-          <q-btn color="orange-6" text-color="black" label="Confirm update" @click="saveUpdate" />
+          <q-btn color="primary" text-color="white" label="Confirm update" @click="saveUpdate" />
         </q-card-actions>
       </q-card>
     </q-dialog>

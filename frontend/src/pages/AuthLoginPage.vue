@@ -23,7 +23,7 @@ SPDX-License-Identifier: GPL-3.0-only
         </q-banner>
 
         <q-inner-loading :showing="loadingAuthOptions">
-          <q-spinner-rings size="36px" color="orange-4" />
+          <q-spinner-rings size="36px" color="primary" />
         </q-inner-loading>
 
         <q-form v-if="authMethodOptions.length" class="q-gutter-md" @submit.prevent="handleSignIn">
@@ -55,8 +55,8 @@ SPDX-License-Identifier: GPL-3.0-only
           </div>
           <q-btn
             unelevated
-            color="orange-6"
-            text-color="black"
+            color="primary"
+            text-color="white"
             class="full-width"
             :label="submitLabel"
             type="submit"
@@ -169,7 +169,7 @@ function targetRoute() {
   if (typeof requested === 'string' && requested.startsWith('/')) {
     return requested
   }
-  return session.user?.role === 'app_admin' ? '/admin' : '/diversions'
+  return session.user?.role === 'app_admin' ? '/admin/diversions' : '/diversions'
 }
 
 async function redirectAfterLogin() {
@@ -259,20 +259,12 @@ onMounted(async () => {
   inset: auto 8% 0;
   height: 76%;
   border-radius: 999px;
-  background:
-    radial-gradient(
-      circle at center,
-      rgba(239, 154, 72, 0.28) 0%,
-      rgba(239, 154, 72, 0.14) 40%,
-      rgba(255, 215, 171, 0.08) 58%,
-      transparent 78%
-    ),
-    radial-gradient(
-      circle at center,
-      rgba(16, 13, 11, 0.62) 8%,
-      rgba(16, 13, 11, 0.12) 48%,
-      transparent 78%
-    );
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 102, 204, 0.14) 0%,
+    rgba(0, 102, 204, 0.06) 45%,
+    transparent 78%
+  );
   filter: blur(24px);
   transform: translateY(10%) scaleX(1.04);
   z-index: -1;
@@ -283,8 +275,7 @@ onMounted(async () => {
   display: block;
   width: min(100%, 460px);
   height: auto;
-  filter: drop-shadow(0 14px 34px rgba(9, 7, 6, 0.36))
-    drop-shadow(0 0 28px rgba(239, 154, 72, 0.16));
+  filter: drop-shadow(0 14px 34px rgba(15, 23, 42, 0.16));
   -webkit-mask-image: radial-gradient(
     ellipse at center,
     #000 58%,

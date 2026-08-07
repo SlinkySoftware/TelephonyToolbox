@@ -18,7 +18,7 @@ SPDX-License-Identifier: GPL-3.0-only
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg soft-grid">
           <div>
-            <div class="text-subtitle2 text-orange-2">Validate source number</div>
+            <div class="text-subtitle2 text-primary">Validate source number</div>
             <div class="row q-col-gutter-sm q-mt-sm">
               <div class="col">
                 <q-input
@@ -33,8 +33,8 @@ SPDX-License-Identifier: GPL-3.0-only
               </div>
               <div class="col-auto">
                 <q-btn
-                  color="orange-6"
-                  text-color="black"
+                  color="primary"
+                  text-color="white"
                   label="Validate"
                   :disable="!trimmedSourceNumber"
                   @click="handleValidateSource"
@@ -62,10 +62,10 @@ SPDX-License-Identifier: GPL-3.0-only
           </div>
 
           <div>
-            <div class="text-subtitle2 text-orange-2">
+            <div class="text-subtitle2 text-primary">
               {{ editingId ? 'Edit diversion metadata' : 'Create diversion' }}
             </div>
-            <div class="text-caption text-grey-5 q-mt-xs">
+            <div class="text-caption text-grey-7 q-mt-xs">
               {{
                 editingId
                   ? `Source DN: ${form.source_number}`
@@ -99,13 +99,13 @@ SPDX-License-Identifier: GPL-3.0-only
               />
               <div class="row q-gutter-sm">
                 <q-btn
-                  color="orange-6"
-                  text-color="black"
+                  color="primary"
+                  text-color="white"
                   :label="editingId ? 'Update diversion' : 'Create diversion'"
                   type="submit"
                   :disable="!canSubmitDiversion"
                 />
-                <q-btn flat color="grey-4" label="Reset" @click="resetForm" />
+                <q-btn flat color="grey-7" label="Reset" @click="resetForm" />
               </div>
             </q-form>
           </div>
@@ -133,7 +133,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="sync"
-                  color="orange-4"
+                  color="primary"
                   @click="handleRefresh(props.row.id)"
                 />
                 <q-btn
@@ -141,7 +141,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="edit"
-                  color="orange-3"
+                  color="primary"
                   @click="beginEdit(props.row)"
                 />
                 <q-btn
@@ -149,7 +149,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="delete"
-                  color="red-3"
+                  color="negative"
                   @click="handleDeleteDiversion(props.row)"
                 />
               </q-td>

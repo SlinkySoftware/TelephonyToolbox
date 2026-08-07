@@ -45,7 +45,7 @@ export default defineRouter((/* { store, ssrContext } */) => {
     await session.initialize()
 
     if (to.meta.guestOnly && session.user) {
-      return session.user.role === 'app_admin' ? '/admin' : '/diversions'
+      return session.user.role === 'app_admin' ? '/admin/diversions' : '/diversions'
     }
 
     if (to.meta.requiresAuth && !session.user) {

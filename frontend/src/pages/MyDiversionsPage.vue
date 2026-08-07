@@ -26,8 +26,8 @@ SPDX-License-Identifier: GPL-3.0-only
         </div>
         <div class="col-12 col-md-auto">
           <q-btn
-            color="orange-6"
-            text-color="black"
+            color="primary"
+            text-color="white"
             label="Reload list"
             @click="loadDiversions"
             :loading="loading"
@@ -59,7 +59,7 @@ SPDX-License-Identifier: GPL-3.0-only
               round
               dense
               icon="sync"
-              color="orange-4"
+              color="primary"
               @click="handleRefresh(props.row)"
             />
             <q-btn
@@ -67,7 +67,7 @@ SPDX-License-Identifier: GPL-3.0-only
               round
               dense
               icon="edit"
-              color="orange-2"
+              color="primary"
               :disable="props.row.cucm_status !== 'available'"
               @click="goToEdit(props.row.id)"
             />

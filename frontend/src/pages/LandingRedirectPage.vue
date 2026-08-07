@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0-only
 <template>
   <q-page class="row items-center justify-center">
     <div class="status-panel q-pa-xl text-center">
-      <q-spinner-rings size="52px" color="orange-4" />
+      <q-spinner-rings size="52px" color="primary" />
       <div class="text-h6 q-mt-md">Routing you to the right workspace</div>
     </div>
   </q-page>
@@ -21,7 +21,7 @@ const router = useRouter()
 const session = useSessionStore()
 
 onMounted(async () => {
-  const destination = session.user?.role === 'app_admin' ? '/admin' : '/diversions'
+  const destination = session.user?.role === 'app_admin' ? '/admin/diversions' : '/diversions'
   await router.replace(destination)
 })
 </script>

@@ -18,7 +18,7 @@ SPDX-License-Identifier: GPL-3.0-only
       <div class="col-12 col-lg-4">
         <section class="form-panel q-pa-lg soft-grid">
           <div v-if="supportsExternalValidation">
-            <div class="text-subtitle2 text-orange-2">Validate external user</div>
+            <div class="text-subtitle2 text-primary">Validate external user</div>
             <div class="row q-col-gutter-sm q-mt-sm">
               <div class="col">
                 <q-input
@@ -31,8 +31,8 @@ SPDX-License-Identifier: GPL-3.0-only
               </div>
               <div class="col-auto">
                 <q-btn
-                  color="orange-6"
-                  text-color="black"
+                  color="primary"
+                  text-color="white"
                   label="Validate"
                   :disable="!trimmedValidationEmail"
                   @click="handleValidateExternalUser"
@@ -50,7 +50,7 @@ SPDX-License-Identifier: GPL-3.0-only
           </div>
 
           <div v-else-if="externalAuthMode === 'oidc'" class="status-panel q-pa-md">
-            <div class="text-subtitle2 text-orange-2">{{ externalAuthLabel }} provisioning</div>
+            <div class="text-subtitle2 text-primary">{{ externalAuthLabel }} provisioning</div>
             <div class="q-mt-sm">
               Generic OIDC/OAuth providers do not expose a standard directory lookup API.
               Provision users manually with the exact email address returned by
@@ -59,7 +59,7 @@ SPDX-License-Identifier: GPL-3.0-only
           </div>
 
           <div>
-            <div class="text-subtitle2 text-orange-2">
+            <div class="text-subtitle2 text-primary">
               {{ editingId ? 'Edit user' : 'Create user' }}
             </div>
             <q-form ref="userFormRef" class="q-gutter-md q-mt-sm" @submit.prevent="handleSaveUser">
@@ -119,15 +119,15 @@ SPDX-License-Identifier: GPL-3.0-only
                 lazy-rules="ondemand"
                 hint="Required when creating a local user."
               />
-              <q-toggle v-model="form.is_active" label="User is active" color="orange-5" />
+              <q-toggle v-model="form.is_active" label="User is active" color="primary" />
               <div class="row q-gutter-sm">
                 <q-btn
-                  color="orange-6"
-                  text-color="black"
+                  color="primary"
+                  text-color="white"
                   :label="editingId ? 'Update user' : 'Create user'"
                   type="submit"
                 />
-                <q-btn flat color="grey-4" label="Reset" @click="resetForm" />
+                <q-btn flat color="grey-7" label="Reset" @click="resetForm" />
               </div>
             </q-form>
           </div>
@@ -141,7 +141,7 @@ SPDX-License-Identifier: GPL-3.0-only
               <q-input v-model="search" filled dense label="Search users" />
             </div>
             <div class="col-auto">
-              <q-btn outline color="orange-3" label="Reload" @click="loadData" />
+              <q-btn outline color="primary" label="Reload" @click="loadData" />
             </div>
           </div>
 
@@ -180,7 +180,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="edit"
-                  color="orange-3"
+                  color="primary"
                   @click="beginEdit(props.row)"
                 />
                 <q-btn
@@ -188,7 +188,7 @@ SPDX-License-Identifier: GPL-3.0-only
                   round
                   dense
                   icon="delete"
-                  color="red-3"
+                  color="negative"
                   @click="handleDeleteUser(props.row)"
                 />
               </q-td>

@@ -7,7 +7,7 @@ SPDX-License-Identifier: GPL-3.0-only
   <q-layout view="hHh Lpr lFf" class="app-shell">
     <q-header class="app-header">
       <q-toolbar class="toolbar-pad">
-        <q-btn flat round dense icon="menu" class="lt-md text-sand" @click="toggleLeftDrawer" />
+        <q-btn flat round dense icon="menu" class="lt-md text-grey-8" @click="toggleLeftDrawer" />
 
         <div class="header-brand">
           <div class="header-logo-wrap">
@@ -109,7 +109,12 @@ const adminLinks = computed(() => {
   }
 
   return [
-    { to: '/admin', label: 'Dashboard', caption: 'Operational summary', icon: 'space_dashboard' },
+    {
+      to: '/admin/diversions',
+      label: 'Diversions',
+      caption: 'Create and assign source numbers',
+      icon: 'phone_forwarded',
+    },
     {
       to: '/admin/users',
       label: 'Users',
@@ -121,12 +126,6 @@ const adminLinks = computed(() => {
       label: 'Groups',
       caption: 'Manage local access boundaries',
       icon: 'groups_2',
-    },
-    {
-      to: '/admin/diversions',
-      label: 'Diversions',
-      caption: 'Create and assign source numbers',
-      icon: 'phone_forwarded',
     },
     {
       to: '/admin/audit',
