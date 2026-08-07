@@ -42,7 +42,7 @@ SPDX-License-Identifier: GPL-3.0-only
               v-model="destination"
               filled
               label="New destination"
-              hint="Australian FNN, mobile or +E.164 only"
+              hint="Australian national, mobile or +E.164 numbers only"
               @update:model-value="handleDestinationInput"
             />
 
