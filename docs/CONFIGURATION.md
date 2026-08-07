@@ -648,6 +648,45 @@ python backend/manage.py delete_expired_audit_events
 
 ---
 
+### Branding Configuration
+
+All branding assets are blank (a transparent image) by default. Each variable
+takes an absolute path to a readable image file on the backend host. When set,
+the file is served at runtime via `/api/branding/<slug>/`, so overrides apply
+after an env change and backend restart without rebuilding the frontend. The
+endpoint is proxied by the Quasar dev server in development and by nginx in
+production, so the same URLs work in both environments.
+
+#### `BRAND_HEADER_LOGO`
+
+**Type**: String (absolute file path)  
+**Required**: No  
+**Default**: _(blank / transparent)_  
+**Example**: `/etc/telephonytoolbox/branding/header-logo.png`
+
+Logo shown in the upper-left of the application header. Served at
+`/api/branding/header-logo/`.
+
+#### `BRAND_LOGIN_LOGO`
+
+**Type**: String (absolute file path)  
+**Required**: No  
+**Default**: _(blank / transparent)_  
+**Example**: `/etc/telephonytoolbox/branding/login-logo.png`
+
+Logo shown on the login page. Served at `/api/branding/login-logo/`.
+
+#### `BRAND_FAVICON`
+
+**Type**: String (absolute file path)  
+**Required**: No  
+**Default**: _(blank / transparent)_  
+**Example**: `/etc/telephonytoolbox/branding/favicon.png`
+
+Browser tab favicon. Served at `/api/branding/favicon/`.
+
+---
+
 ## Environment File Example
 
 ```bash
@@ -686,6 +725,11 @@ CUCM_AXL_VERIFY_TLS=true
 
 # Audit
 AUDIT_RETENTION_DAYS=90
+
+# Branding (optional; blank/transparent by default)
+BRAND_HEADER_LOGO=
+BRAND_LOGIN_LOGO=
+BRAND_FAVICON=
 ```
 
 ---
@@ -827,6 +871,10 @@ CUCM_ROUTE_PARTITION=INTERNAL
 CUCM_AXL_VERIFY_TLS=true
 
 AUDIT_RETENTION_DAYS=90
+
+BRAND_HEADER_LOGO=
+BRAND_LOGIN_LOGO=
+BRAND_FAVICON=
 ```
 
 ---

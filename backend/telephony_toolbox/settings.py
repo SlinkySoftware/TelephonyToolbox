@@ -42,6 +42,13 @@ CUCM_AXL_VERIFY_TLS = env_bool('CUCM_AXL_VERIFY_TLS', True)
 
 AUDIT_RETENTION_DAYS = env_int('AUDIT_RETENTION_DAYS', 90)
 
+# Optional absolute paths to branding overrides. When unset (the default) each
+# asset is served as a blank transparent image. Files are served at runtime via
+# /api/branding/<slug>/ so they work behind the Quasar dev proxy and nginx alike.
+BRAND_HEADER_LOGO = env_str('BRAND_HEADER_LOGO', '')
+BRAND_LOGIN_LOGO = env_str('BRAND_LOGIN_LOGO', '')
+BRAND_FAVICON = env_str('BRAND_FAVICON', '')
+
 LOG_FILE = Path(env_str('DJANGO_LOG_FILE', str(BASE_DIR / 'logs' / 'telephony_toolbox.log')))
 LOG_LEVEL = env_str('DJANGO_LOG_LEVEL', 'INFO').upper()
 try:
@@ -83,6 +90,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'access_groups.apps.AccessGroupsConfig',
     'audit.apps.AuditConfig',
+    'branding.apps.BrandingConfig',
     'cucm.apps.CucmConfig',
     'dialplan.apps.DialplanConfig',
     'diversions.apps.DiversionsConfig',

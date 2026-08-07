@@ -11,7 +11,7 @@ SPDX-License-Identifier: GPL-3.0-only
 
         <div class="header-brand">
           <div class="header-logo-wrap">
-            <img src="/images/header-logo.png" alt="Telephony Toolbox" class="header-logo" />
+            <img src="/api/branding/header-logo/" alt="" class="header-logo" />
           </div>
 
           <div class="brand-lockup">

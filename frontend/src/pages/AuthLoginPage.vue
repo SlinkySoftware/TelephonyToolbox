@@ -6,9 +6,7 @@ SPDX-License-Identifier: GPL-3.0-only
 <template>
   <div class="login-page-shell row items-center justify-center q-pa-md">
     <div class="login-stage">
-      <div class="login-logo-wrap">
-        <img src="/images/mainlogo.png" alt="Telephony Toolbox" class="login-main-logo" />
-      </div>
+      <img src="/api/branding/login-logo/" alt="" class="login-brand-logo" />
 
       <section class="form-panel q-pa-xl login-card">
         <div class="section-kicker">Sign In</div>
@@ -239,54 +237,14 @@ onMounted(async () => {
   align-items: center;
 }
 
-.login-logo-wrap {
-  position: relative;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 0 1rem 1.25rem;
-  isolation: isolate;
-}
-
-.login-logo-wrap::after {
-  content: '';
-  position: absolute;
-  inset: auto 8% 0;
-  height: 76%;
-  border-radius: 999px;
-  background: radial-gradient(
-    circle at center,
-    rgba(0, 102, 204, 0.14) 0%,
-    rgba(0, 102, 204, 0.06) 45%,
-    transparent 78%
-  );
-  filter: blur(24px);
-  transform: translateY(10%) scaleX(1.04);
-  z-index: -1;
-  pointer-events: none;
-}
-
-.login-main-logo {
+.login-brand-logo {
   display: block;
-  width: min(100%, 460px);
+  margin: 0 auto 1.25rem;
+  max-width: min(100%, 460px);
+  max-height: 140px;
+  width: auto;
   height: auto;
-  filter: drop-shadow(0 14px 34px rgba(15, 23, 42, 0.16));
-  -webkit-mask-image: radial-gradient(
-    ellipse at center,
-    #000 58%,
-    rgba(0, 0, 0, 0.86) 70%,
-    rgba(0, 0, 0, 0.32) 84%,
-    rgba(0, 0, 0, 0.1) 92%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse at center,
-    #000 58%,
-    rgba(0, 0, 0, 0.86) 70%,
-    rgba(0, 0, 0, 0.32) 84%,
-    rgba(0, 0, 0, 0.1) 92%,
-    transparent 100%
-  );
+  object-fit: contain;
 }
 
 .login-card {
