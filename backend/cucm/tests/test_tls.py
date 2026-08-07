@@ -85,6 +85,17 @@ def test_verify_tls_false_disables_trust_env(settings, fake_zeep):
 
 
 @pytest.mark.django_db
+def test_verify_tls_false_suppresses_insecure_request_warning(monkeypatch, settings, fake_zeep):
+    settings.CUCM_AXL_VERIFY_TLS = False
+    disabled = []
+    monkeypatch.setattr(client_zeep.urllib3, 'disable_warnings', lambda category: disabled.append(category))
+
+    Cucm14Client('cucm.example.test', 'user', 'pass')
+
+    assert disabled == [client_zeep.InsecureRequestWarning]
+
+
+@pytest.mark.django_db
 def test_verify_tls_true_preserves_trust_env(settings, fake_zeep):
     settings.CUCM_AXL_VERIFY_TLS = True
 
@@ -93,6 +104,18 @@ def test_verify_tls_true_preserves_trust_env(settings, fake_zeep):
     session = fake_zeep['session']
     assert session.verify is True
     assert session.trust_env is True
+
+
+@pytest.mark.django_db
+def test_verify_tls_true_keeps_insecure_request_warning(monkeypatch, settings, fake_zeep):
+    settings.CUCM_AXL_VERIFY_TLS = True
+    monkeypatch.setattr(
+        client_zeep.urllib3,
+        'disable_warnings',
+        lambda category: pytest.fail('warnings must not be disabled when TLS verification is enabled'),
+    )
+
+    Cucm14Client('cucm.example.test', 'user', 'pass')
 
 
 @pytest.mark.django_db

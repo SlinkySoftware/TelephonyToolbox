@@ -6,11 +6,13 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import requests
+import urllib3
 from django.conf import settings
 from requests import Session
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
+from urllib3.exceptions import InsecureRequestWarning
 from zeep import Client, Settings as ZeepSettings
 from zeep.exceptions import Fault, TransportError
 from zeep.transports import Transport
@@ -63,6 +65,10 @@ class ZeepCucmClient(CucmClient):
             # into the per-request verify setting, which otherwise wins over the
             # session-level False and re-enables certificate verification.
             session.trust_env = False
+            # verify=False makes urllib3 emit an InsecureRequestWarning on every
+            # request, flooding the log. Suppress it since disabling verification
+            # is a deliberate, configured choice.
+            urllib3.disable_warnings(InsecureRequestWarning)
         self._configure_session(session)
         return session
 
