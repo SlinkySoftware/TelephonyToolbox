@@ -10,12 +10,12 @@ SPDX-License-Identifier: GPL-3.0-only
       <h1 class="page-title">{{ diversion?.name || 'Edit Diversion' }}</h1>
       <p class="page-subtitle">
         Enter a destination and confirm the update. The application validates the
-        number before updating the phony system.
+        number before updating the phone system.
       </p>
     </section>
 
     <q-banner
-      v-if="diversion?.cucm_status !== 'available'"
+      v-if="diversion && diversion.cucm_status !== 'available'"
       class="warning-banner text-white q-pa-md"
     >
       The phone system is currently unavailable. Cached diversion information is displayed and updates are
