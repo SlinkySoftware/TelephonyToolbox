@@ -106,6 +106,22 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Request performance instrumentation. When enabled, RequestTimingMiddleware
+# records per-request wall-clock time and database query counts to the
+# telephony_toolbox.perf logger and adds X-Response-Time-ms / X-DB-Query-Count
+# response headers. Enabled by default in DEBUG; opt-in elsewhere.
+PERF_TIMING_ENABLED = env_bool('PERF_TIMING_ENABLED', DEBUG)
+PERF_SLOW_REQUEST_MS = env_int('PERF_SLOW_REQUEST_MS', 500)
+PERF_LOG_FILE = Path(env_str('PERF_LOG_FILE', str(BASE_DIR / 'logs' / 'perf.log')))
+
+if PERF_TIMING_ENABLED:
+    # Sit just inside SecurityMiddleware so timing captures the full stack.
+    MIDDLEWARE.insert(1, 'telephony_toolbox.middleware.RequestTimingMiddleware')
+    try:
+        PERF_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        PERF_LOG_FILE = None
+
 ROOT_URLCONF = 'telephony_toolbox.urls'
 
 TEMPLATES = [
@@ -234,3 +250,17 @@ LOGGING = {
         },
     },
 }
+
+if PERF_TIMING_ENABLED:
+    LOGGING['handlers']['perf_file'] = {
+        'class': 'logging.handlers.RotatingFileHandler',
+        'filename': str(PERF_LOG_FILE) if PERF_LOG_FILE else str(BASE_DIR / 'perf.log'),
+        'maxBytes': env_int('DJANGO_LOG_MAX_BYTES', 5 * 1024 * 1024),
+        'backupCount': env_int('DJANGO_LOG_BACKUP_COUNT', 5),
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['telephony_toolbox.perf'] = {
+        'handlers': ['console', 'perf_file'],
+        'level': 'INFO',
+        'propagate': False,
+    }
