@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright 2026, Slinky Software
 # SPDX-License-Identifier: GPL-3.0-only
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.db.models import Q
@@ -39,6 +41,7 @@ from audit.services import AuditService
 User = get_user_model()
 MODEL_BACKEND = 'django.contrib.auth.backends.ModelBackend'
 LOGIN_SUCCESS_EVENT = 'auth.login.success'
+logger = logging.getLogger(__name__)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
@@ -111,7 +114,8 @@ class LdapLoginView(APIView):
 
         try:
             identity = IdentityValidationService.current_provider().authenticate_user(email, serializer.validated_data['password'])
-        except ExternalIdentityUnavailableError:
+        except ExternalIdentityUnavailableError as exc:
+            logger.error('LDAP login unavailable for email=%r: %s', email, exc)
             return Response({'message': 'LDAP is currently unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         if not identity.exists or not identity.enabled:
@@ -247,7 +251,12 @@ class AdminUserValidateView(APIView):
                 {'message': 'External user validation is not supported for this authentication provider.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except ExternalIdentityUnavailableError:
+        except ExternalIdentityUnavailableError as exc:
+            logger.error(
+                'External identity provider unavailable during validation for email=%r: %s',
+                serializer.validated_data['email'],
+                exc,
+            )
             return Response({'message': 'External identity provider is unavailable.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
         AuditService.record_event(
@@ -281,7 +290,12 @@ class AdminUserListCreateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 ),
             )
-        except ExternalIdentityUnavailableError:
+        except ExternalIdentityUnavailableError as exc:
+            logger.error(
+                'External identity provider unavailable while resolving display name for email=%r: %s',
+                email,
+                exc,
+            )
             return (
                 None,
                 Response(

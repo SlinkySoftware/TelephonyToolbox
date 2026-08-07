@@ -78,17 +78,39 @@ def _first_claim_value(claims, *names):
 
 class LdapIdentityProvider:
     def _server(self):
+        logger.debug('LDAP: creating Server for URI %r (get_info=ALL)', settings.LDAP_SERVER_URI)
         return Server(settings.LDAP_SERVER_URI, get_info=ALL)
 
     def _connect_as_service_account(self):
-        return Connection(
-            self._server(),
-            user=settings.LDAP_BIND_DN,
-            password=settings.LDAP_BIND_PASSWORD,
-            auto_bind=True,
-            client_strategy=SYNC,
-            raise_exceptions=True,
+        # NOTE: the bind password is never logged.
+        logger.debug(
+            'LDAP: binding as service account bind_dn=%r against server=%r',
+            settings.LDAP_BIND_DN,
+            settings.LDAP_SERVER_URI,
         )
+        try:
+            conn = Connection(
+                self._server(),
+                user=settings.LDAP_BIND_DN,
+                password=settings.LDAP_BIND_PASSWORD,
+                auto_bind=True,
+                client_strategy=SYNC,
+                raise_exceptions=True,
+            )
+        except LDAPException as exc:
+            logger.error(
+                'LDAP: service account bind FAILED for bind_dn=%r against server=%r: %s',
+                settings.LDAP_BIND_DN,
+                settings.LDAP_SERVER_URI,
+                exc,
+            )
+            raise
+        logger.debug(
+            'LDAP: service account bind succeeded (bound=%s, whoami=%r)',
+            getattr(conn, 'bound', None),
+            getattr(conn, 'user', None),
+        )
+        return conn
 
     def _search(self, email: str):
         email = normalize_email(email)
@@ -106,23 +128,53 @@ class LdapIdentityProvider:
             # Default: search by email attribute only
             search_filter = f'({settings.LDAP_USER_EMAIL_ATTRIBUTE}={escape_filter_chars(email)})'
 
+        logger.info(
+            'LDAP: searching for user email=%r base=%r filter=%r attributes=%s',
+            email,
+            settings.LDAP_USER_SEARCH_BASE,
+            search_filter,
+            attributes,
+        )
+
         with self._connect_as_service_account() as conn:
             conn.search(
                 settings.LDAP_USER_SEARCH_BASE,
                 search_filter,
                 attributes=attributes,
             )
-            if not conn.entries:
+            entries = conn.entries
+            logger.info(
+                'LDAP: search for email=%r returned %d entr%s (result=%r)',
+                email,
+                len(entries),
+                'y' if len(entries) == 1 else 'ies',
+                getattr(conn, 'result', None),
+            )
+            if not entries:
                 return None
-            return conn.entries[0]
+            if len(entries) > 1:
+                logger.warning(
+                    'LDAP: search for email=%r returned multiple entries; using the first (dn=%r)',
+                    email,
+                    getattr(entries[0], 'entry_dn', None),
+                )
+            logger.debug('LDAP: selected entry dn=%r', getattr(entries[0], 'entry_dn', None))
+            return entries[0]
 
     def validate_user(self, email: str) -> IdentityValidationResult:
+        logger.info('LDAP: validate_user requested for email=%r', normalize_email(email))
         try:
             entry = self._search(email)
         except LDAPException as exc:
+            logger.error(
+                'LDAP: validate_user for email=%r failed - provider unavailable: %s',
+                normalize_email(email),
+                exc,
+            )
             raise ExternalIdentityUnavailableError(str(exc)) from exc
 
         if entry is None:
+            logger.info('LDAP: validate_user for email=%r found no matching entry', normalize_email(email))
             return IdentityValidationResult(False, 'ldap', normalize_email(email), '', '', False)
 
         enabled = True
@@ -131,29 +183,56 @@ class LdapIdentityProvider:
 
         actual_email = getattr(entry, settings.LDAP_USER_EMAIL_ATTRIBUTE).value or normalize_email(email)
         display_name = getattr(entry, settings.LDAP_USER_DISPLAY_NAME_ATTRIBUTE).value or actual_email
+        logger.info(
+            'LDAP: validate_user for email=%r resolved dn=%r actual_email=%r enabled=%s',
+            normalize_email(email),
+            getattr(entry, 'entry_dn', None),
+            normalize_email(actual_email),
+            enabled,
+        )
         return IdentityValidationResult(True, 'ldap', normalize_email(actual_email), display_name, normalize_email(actual_email), enabled)
 
     def authenticate_user(self, email: str, password: str) -> IdentityValidationResult:
+        logger.info('LDAP: authenticate_user requested for email=%r', normalize_email(email))
         try:
             entry = self._search(email)
         except LDAPException as exc:
+            logger.error(
+                'LDAP: authenticate_user for email=%r failed - provider unavailable during search: %s',
+                normalize_email(email),
+                exc,
+            )
             raise ExternalIdentityUnavailableError(str(exc)) from exc
 
         if entry is None:
+            logger.info(
+                'LDAP: authenticate_user for email=%r found no matching entry; rejecting',
+                normalize_email(email),
+            )
             return IdentityValidationResult(False, 'ldap', normalize_email(email), enabled=False)
 
+        # NOTE: the user-supplied password is never logged.
+        user_dn = entry.entry_dn
+        logger.info('LDAP: authenticate_user attempting user bind for dn=%r', user_dn)
         try:
             Connection(
                 self._server(),
-                user=entry.entry_dn,
+                user=user_dn,
                 password=password,
                 auto_bind=True,
                 client_strategy=SYNC,
                 raise_exceptions=True,
             ).unbind()
-        except LDAPException:
+        except LDAPException as exc:
+            logger.warning(
+                'LDAP: authenticate_user user bind FAILED for dn=%r (email=%r): %s',
+                user_dn,
+                normalize_email(email),
+                exc,
+            )
             return IdentityValidationResult(False, 'ldap', normalize_email(email), enabled=False)
 
+        logger.info('LDAP: authenticate_user user bind succeeded for dn=%r', user_dn)
         return self.validate_user(email)
 
 
