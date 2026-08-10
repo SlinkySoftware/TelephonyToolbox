@@ -54,7 +54,7 @@ SPDX-License-Identifier: GPL-3.0-only
             row-key="id"
             flat
             :rows-per-page-options="[10, 20, 50, 0]"
-            :pagination="{ rowsPerPage: 10 }"
+            :pagination="{ sortBy: 'name', descending: false, rowsPerPage: 10 }"
           >
             <template #body-cell-actions="props">
               <q-td :props="props" class="q-gutter-sm">
@@ -102,10 +102,22 @@ const canSubmitGroup = computed(() => Boolean(trimmedGroupName.value))
 const groupNameRule = (value) => Boolean(String(value || '').trim()) || 'Group name is required.'
 
 const columns = [
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'description', label: 'Description', field: 'description', align: 'left' },
-  { name: 'user_count', label: 'Users', field: 'user_count', align: 'center' },
-  { name: 'diversion_count', label: 'Diversions', field: 'diversion_count', align: 'center' },
+  { name: 'name', label: 'Name', field: 'name', align: 'left', sortable: true },
+  {
+    name: 'description',
+    label: 'Description',
+    field: 'description',
+    align: 'left',
+    sortable: true,
+  },
+  { name: 'user_count', label: 'Users', field: 'user_count', align: 'center', sortable: true },
+  {
+    name: 'diversion_count',
+    label: 'Diversions',
+    field: 'diversion_count',
+    align: 'center',
+    sortable: true,
+  },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 

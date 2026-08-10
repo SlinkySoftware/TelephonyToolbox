@@ -116,7 +116,7 @@ SPDX-License-Identifier: GPL-3.0-only
             row-key="id"
             flat
             :rows-per-page-options="[10, 20, 50, 0]"
-            :pagination="{ rowsPerPage: 10 }"
+            :pagination="{ sortBy: 'name', descending: false, rowsPerPage: 10 }"
           >
             <template #body-cell-group="props">
               <q-td :props="props">{{ props.row.group?.name }}</q-td>
@@ -243,15 +243,22 @@ const groupErrorMessage = computed(() => {
 const showGroupError = computed(() => Boolean(groupErrorMessage.value))
 
 const columns = [
-  { name: 'name', label: 'Name', field: 'name', align: 'left' },
-  { name: 'source_number', label: 'Source DN', field: 'source_number', align: 'left' },
+  { name: 'name', label: 'Name', field: 'name', align: 'left', sortable: true },
+  {
+    name: 'source_number',
+    label: 'Source DN',
+    field: 'source_number',
+    align: 'left',
+    sortable: true,
+  },
   {
     name: 'cached_current_destination',
     label: 'Cached destination',
     field: 'cached_current_destination',
     align: 'left',
+    sortable: true,
   },
-  { name: 'group', label: 'Group', field: 'group', align: 'left' },
+  { name: 'group', label: 'Group', field: (row) => row.group?.name || '', align: 'left', sortable: true },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 

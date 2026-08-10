@@ -39,7 +39,7 @@ SPDX-License-Identifier: GPL-3.0-only
         flat
         :loading="loading"
         :rows-per-page-options="[10, 20, 50, 0]"
-        :pagination="{ rowsPerPage: 10 }"
+        :pagination="{ sortBy: 'timestamp', descending: true, rowsPerPage: 10 }"
       >
         <template #body-cell-timestamp="props">
           <q-td :props="props">{{ formatDateTime(props.row.timestamp) }}</q-td>
@@ -63,12 +63,12 @@ const rows = ref([])
 const filters = ref({ actor_email: '', event_type: '', result: '', source_number: '' })
 
 const columns = [
-  { name: 'timestamp', label: 'Timestamp', field: 'timestamp', align: 'left' },
-  { name: 'actor_email', label: 'Actor', field: 'actor_email', align: 'left' },
-  { name: 'event_type', label: 'Event type', field: 'event_type', align: 'left' },
-  { name: 'result', label: 'Result', field: 'result', align: 'left' },
-  { name: 'object_name', label: 'Object', field: 'object_name', align: 'left' },
-  { name: 'message', label: 'Message', field: 'message', align: 'left' },
+  { name: 'timestamp', label: 'Timestamp', field: 'timestamp', align: 'left', sortable: true },
+  { name: 'actor_email', label: 'Actor', field: 'actor_email', align: 'left', sortable: true },
+  { name: 'event_type', label: 'Event type', field: 'event_type', align: 'left', sortable: true },
+  { name: 'result', label: 'Result', field: 'result', align: 'left', sortable: true },
+  { name: 'object_name', label: 'Object', field: 'object_name', align: 'left', sortable: true },
+  { name: 'message', label: 'Message', field: 'message', align: 'left', sortable: true },
 ]
 
 const exportUrl = computed(() => buildCsvExportUrl(filters.value))

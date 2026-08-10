@@ -147,7 +147,7 @@ SPDX-License-Identifier: GPL-3.0-only
             row-key="id"
             flat
             :rows-per-page-options="[10, 20, 50, 0]"
-            :pagination="{ rowsPerPage: 10 }"
+            :pagination="{ sortBy: 'email', descending: false, rowsPerPage: 10 }"
           >
             <template #body-cell-email="props">
               <q-td :props="props">
@@ -274,11 +274,23 @@ const passwordRule = (value) => {
 }
 
 const columns = [
-  { name: 'email', label: 'Email', field: 'email', align: 'left' },
-  { name: 'display_name', label: 'Display name', field: 'display_name', align: 'left' },
-  { name: 'auth_source', label: 'Auth source', field: 'auth_source', align: 'left' },
-  { name: 'role', label: 'Role', field: 'role', align: 'left' },
-  { name: 'groups', label: 'Groups', field: 'groups', align: 'left' },
+  { name: 'email', label: 'Email', field: 'email', align: 'left', sortable: true },
+  {
+    name: 'display_name',
+    label: 'Display name',
+    field: 'display_name',
+    align: 'left',
+    sortable: true,
+  },
+  { name: 'auth_source', label: 'Auth source', field: 'auth_source', align: 'left', sortable: true },
+  { name: 'role', label: 'Role', field: 'role', align: 'left', sortable: true },
+  {
+    name: 'groups',
+    label: 'Groups',
+    field: (row) => row.groups.map((group) => group.name).join(', '),
+    align: 'left',
+    sortable: true,
+  },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 

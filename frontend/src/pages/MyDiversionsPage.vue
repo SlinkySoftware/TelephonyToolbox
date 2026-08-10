@@ -38,7 +38,7 @@ SPDX-License-Identifier: GPL-3.0-only
         row-key="id"
         :loading="loading"
         :rows-per-page-options="[10, 20, 50, 0]"
-        :pagination="{ rowsPerPage: 10 }"
+        :pagination="{ sortBy: 'name', descending: false, rowsPerPage: 10 }"
       >
         <template #body-cell-last_refreshed_at="props">
           <q-td :props="props">{{ formatDateTime(props.row.last_refreshed_at) }}</q-td>
@@ -91,16 +91,41 @@ const diversions = ref([])
 
 const columns = [
   { name: 'name', label: 'Name', field: 'name', align: 'left', sortable: true },
-  { name: 'source_number', label: 'Source DN', field: 'source_number', align: 'left' },
+  {
+    name: 'source_number',
+    label: 'Source DN',
+    field: 'source_number',
+    align: 'left',
+    sortable: true,
+  },
   {
     name: 'cached_current_destination',
     label: 'Current destination',
     field: 'cached_current_destination',
     align: 'left',
+    sortable: true,
   },
-  { name: 'group', label: 'Group', field: (row) => row.group?.name || 'Unassigned', align: 'left' },
-  { name: 'last_refreshed_at', label: 'Last refreshed', field: 'last_refreshed_at', align: 'left' },
-  { name: 'last_updated_at', label: 'Last updated', field: 'last_updated_at', align: 'left' },
+  {
+    name: 'group',
+    label: 'Group',
+    field: (row) => row.group?.name || 'Unassigned',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'last_refreshed_at',
+    label: 'Last refreshed',
+    field: 'last_refreshed_at',
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'last_updated_at',
+    label: 'Last updated',
+    field: 'last_updated_at',
+    align: 'left',
+    sortable: true,
+  },
   { name: 'actions', label: 'Actions', field: 'actions', align: 'right' },
 ]
 
