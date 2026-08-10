@@ -208,7 +208,7 @@ import {
   updateUser,
   validateExternalUser,
 } from 'src/services/toolboxApi'
-import { extractApiMessage } from 'src/utils/format'
+import { extractApiMessage, formatDateTime } from 'src/utils/format'
 import { useSessionStore } from 'src/stores/session'
 
 const $q = useQuasar()
@@ -288,6 +288,14 @@ const columns = [
     name: 'groups',
     label: 'Groups',
     field: (row) => row.groups.map((group) => group.name).join(', '),
+    align: 'left',
+    sortable: true,
+  },
+  {
+    name: 'last_login',
+    label: 'Last login',
+    field: 'last_login',
+    format: (value) => formatDateTime(value),
     align: 'left',
     sortable: true,
   },

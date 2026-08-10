@@ -54,7 +54,7 @@ class AdminUserReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'display_name', 'role', 'auth_source', 'is_active', 'is_local', 'groups', 'created_at', 'updated_at')
+        fields = ('id', 'email', 'display_name', 'role', 'auth_source', 'is_active', 'is_local', 'groups', 'last_login', 'created_at', 'updated_at')
 
     def get_groups(self, obj):
         groups = AccessGroup.objects.filter(user_memberships__user=obj).order_by('name').distinct()
