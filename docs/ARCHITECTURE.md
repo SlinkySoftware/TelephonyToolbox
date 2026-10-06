@@ -571,3 +571,107 @@ The codebase is designed to support future features without major refactoring:
 - **Notification integration**: Extend AuditService to emit events; implement notification handlers (Teams, email, etc.)
 
 All changes can be made via new app modules without modifying core authentication or CUCM integration.
+
+## AudioCodes SDR/CDR Module
+
+### Application boundary and ownership
+
+The AudioCodes module is part of the existing Telephony Toolbox application. It uses the existing
+Quasar/Vue SPA, router, API client, Django REST Framework, session authentication, CSRF protection,
+App Admin permission, logging and health-report structure. The frontend routes are
+`/admin/cdr`, `/admin/cdr/sessions/:id`, `/admin/cdr/statistics` and `/admin/cdr/settings`; APIs
+are under `/api/admin/cdr/`. There is no separate login, service, identity-provider flow, or
+application database.
+
+The existing application database owns module configuration, encrypted source credentials,
+configuration versioning, Django cache entries and per-user duration-format preferences. It does
+not store or replicate source SDR/CDR rows. The AudioCodes database is a separate external source;
+its `public.sdr` and `public.cdr` tables are mapped by unmanaged Django models with the source
+column names preserved. The models, querysets, database router, migration guard, and connection
+options block application writes and schema changes. PostgreSQL permissions remain the primary
+security boundary: configure a dedicated source account with effective `SELECT` privilege only,
+including no inherited write privilege or table ownership. Never run application migrations
+against the source alias.
+
+The active source profile and its credential are saved by an App Admin in the in-app settings
+page. The credential is encrypted with Fernet before it is stored in the application database;
+the key is supplied separately through protected deployment configuration as
+`CDR_SOURCE_ENCRYPTION_KEY`. A missing or invalid key prevents saving/using the credential.
+Replica and primary profiles are configurable, with replica selected by default. Changing source
+requires an explicit administrator action; the application does not silently fail over.
+
+### Read path and query controls
+
+```text
+App Admin browser
+  ├─ existing SPA/session/CSRF ──> Django API (IsAppAdmin on every CDR endpoint)
+  │                                  ├─ app database: profiles/settings/preferences/cache
+  │                                  └─ source alias: bounded, read-only SDR/CDR SELECTs
+  └─ /admin/cdr route state (filters and pagination; no credentials)
+```
+
+Search requires a bounded Australia/Sydney setup-time interval (maximum 12 calendar months),
+applies the `setuptime` range before other filters, calculates an exact count, then fetches only
+the requested server-side page. Sorting is allow-listed and page size is bounded (default 100;
+maximum 500). Search never fetches CDRs. Opening one SDR first reads it by `id`, then looks up
+associated CDRs using `cdr.sessionid = sdr.sessionid`, ordered by `legid` with nulls last and `id`
+as a stable tie-breaker. `globalsessionid` and Call-ID are diagnostic display fields, not join
+keys. Source statements are limited to 60 seconds. Contains/ends-with filters can still be costly
+and should be used over appropriately narrow ranges.
+
+There is a hard implementation cap of 1,000 CDR rows for a single session detail response. The
+API indicates truncation and the UI warns when more rows match. This is a known functional
+limitation: the specification requires every matching CDR to be returned.
+
+Lookups and statistics use Django's shared `DatabaseCache` in the application database. Lookup
+refreshes query only SDR columns; termination values are bounded to a configurable recent window.
+Cache failures degrade to uncached source reads. The cache table must therefore be created in the
+application database with `manage.py createcachetable`; current install/upgrade scripts do not
+create it automatically.
+
+Statistics count one SDR as one call and aggregate on the source using setup time. Hourly buckets
+are aligned in UTC so both instances of the repeated Sydney hour during daylight-saving fall-back
+remain distinct. Daily buckets use Australia/Sydney boundaries. The default hourly threshold is
+168 hours and can be changed in settings. Invalid or blank text durations are omitted from the
+average and included in excluded-sample counts.
+
+### Authorization, audit, health and logging
+
+Every CDR API view uses the existing `IsAppAdmin` permission and session authentication; frontend
+navigation visibility is not relied on for security. Unsafe preference/settings requests use the
+existing CSRF middleware. Module-settings updates are recorded through the existing audit service
+as `cdr.settings.updated`; searches and individual SDR/CDR views are not audited. Authenticated
+CDR responses are marked private and `no-store`.
+
+The existing admin health report adds an `audiocodes_cdr` status from a lightweight source `SELECT
+1`. Public liveness is not made dependent on AudioCodes availability, so an unavailable source
+does not take down unrelated Telephony Toolbox functions. The status does not expose credentials
+or database addresses.
+
+The application timing middleware removes query strings for CDR paths when it logs requests, and
+a Gunicorn redacting logger is present. However, the current deployment script does not enable
+that Gunicorn logger or configure Nginx query-string redaction. Search filter values are kept in
+the SPA route query for state restoration, and the current Nginx access log includes request
+URIs; ANI, DNIS and Call-ID values may consequently appear in browser history and access logs.
+Treat those values as sensitive operational data, restrict log access, and do not share search
+URLs until deployment-level redaction is configured.
+
+### As-built operational differences
+
+- Source connection timeout is 60 seconds, while the current deployment script still uses four
+  synchronous Gunicorn workers with a 60-second worker timeout and does not set an Nginx API
+  `proxy_read_timeout`. Long count/search requests may be cut off before a controlled response;
+  keep date ranges narrow and avoid expensive wildcard searches until deployment timeout settings
+  are aligned.
+- The settings UI limits each profile to a `SELECT`-only recommendation but does not inspect
+  effective PostgreSQL grants. DBA provisioning and verification are mandatory.
+- Default “today” end time is rounded up to the next minute to improve cache-key reuse, rather
+  than exactly to the current instant.
+- IP-group lookup results are capped at 1,000; statistics return at most 100 IP groups per side
+  and 10 values per termination field. Multi-select limit defaults to 50 and is configurable up
+  to 200.
+
+See [AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md](AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) for
+the full verified checklist and outstanding deployment tasks, and
+[AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md) for DBA-only
+index guidance. No source index is created by Telephony Toolbox.

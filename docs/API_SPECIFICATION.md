@@ -1100,7 +1100,190 @@ GET /api/admin/health/
 
 **Use Case**: Admin dashboard to verify system integration points.
 
----
+## AudioCodes CDR Admin API
+
+These endpoints are part of the existing `/api/` API host. They use the current Django session
+cookie and session-authentication CSRF handling; there is no CDR-specific login or session. Every
+endpoint below requires an authenticated App Admin. Standard Users and anonymous callers are
+denied by backend permission checks. All responses are private and `no-store`. JSON is used
+throughout.
+
+The external source is read-only. Settings and preferences are stored in the Telephony Toolbox
+application database; source SDR/CDR rows are not copied there. The source profile credential is
+encrypted before persistence and is never included in an API response.
+
+### SDR search
+
+```http
+GET /api/admin/cdr/sdr/
+```
+
+Required parameters are `start` and `end` as ISO 8601 timestamps (offsets are accepted; timestamps
+without offsets are interpreted as Australia/Sydney local time), or one supported `preset`. The
+end boundary is exclusive. Start must precede end and the interval may not exceed 12 calendar
+months. `preset` values are `today`, `last_24h`, `last_48h`, `last_7d`, and `last_month` (previous
+complete calendar month).
+
+Optional filters:
+
+| Parameter | Values / behaviour |
+|---|---|
+| `ingress_ip_group`, `egress_ip_group` | Repeat parameter for exact multi-select values |
+| `ani`, `dnis` | Match either ingress or egress field; matching mode via `ani_match` / `dnis_match` |
+| `call_id` | Match either ingress or egress Call-ID; matching mode via `call_id_match` |
+| `termination_reason` | Repeat parameter for exact values across the four SDR termination fields |
+| `termination_text` | Text match across the four SDR termination fields; mode via `termination_match` |
+| `status` | `all`, `successful`, `unsuccessful`, or `unknown` (null) |
+| `sort` | `setuptime`, ANI/DNIS, IP group, `issuccess`, or `id` allow-list |
+| `direction` | `asc` or `desc` |
+| `page` | 1-based, bounded to 1,000,000 |
+| `page_size` | Allowed configured choices from 25, 50, 100, 250, 500; default 100; max 500 |
+
+Matching modes are `exact`, `startswith`, `endswith`, and `contains`; ANI/DNIS default to
+`contains`, Call-ID to `exact`, and termination text to `contains`. Different filters combine
+with AND, while ingress/egress alternatives inside a logical filter combine with OR. IP-group and
+termination multi-select values are bounded by the configured limit (default 50, setting maximum
+200). Repeated keys and `key[]` notation are accepted.
+
+Example response (source row fields abbreviated):
+
+```json
+{
+  "count": 1,
+  "page": 1,
+  "page_size": 100,
+  "total_pages": 1,
+  "sort": {"field": "setuptime", "direction": "desc"},
+  "filters": {"start": "2026-10-05T00:00:00+11:00", "end": "2026-10-06T00:01:00+11:00", "status": "all"},
+  "results": [
+    {"id": 9001, "setuptime": "2026-10-05T23:45:00+11:00", "issuccess": true,
+     "display": {"outcome": "successful", "effective_start_source": "setuptime", "termination_summary": []}}
+  ]
+}
+```
+
+The summary response contains SDR data only, never associated CDR rows. Search uses an exact
+count and a server-side page. The default today range ends at the next minute boundary. A
+connect-time fallback is labelled in `display.effective_start_source`; it does not change the
+setup-time search predicate.
+
+### SDR detail and correlation diagnostics
+
+```http
+GET /api/admin/cdr/sdr/{numeric_id}/
+```
+
+Returns the complete raw SDR fields plus derived display fields, correlated CDRs, parsed tags and
+anomalies. The correlation key is `cdr.sessionid = sdr.sessionid`; results sort by `legid ASC
+NULLS LAST, id ASC`. Global Session ID and Call-ID are diagnostic only. CDR direction is derived
+from `callorig` (`RMT` inbound, `LCL` outbound, other/blank unknown), while raw source values are
+preserved. Null fields remain null in JSON and are shown blank in the UI.
+
+```json
+{
+  "sdr": {"raw": {"id": 9001, "sessionid": "sess-1"}, "display": {"outcome": "successful"}},
+  "cdrs": [
+    {"raw": {"id": 77, "legid": 1, "callorig": "RMT"},
+     "display": {"direction": "inbound", "direction_label": "Inbound (remotely originated)"},
+     "parsed_tags": {"sourcetags": [], "destinationtags": []}}
+  ],
+  "cdrs_error": null,
+  "cdrs_truncated": false,
+  "anomalies": [],
+  "anomaly_level": "none"
+}
+```
+
+Anomaly severities are `info` and `warning`; no confidence score is produced. A CDR query failure
+can leave the SDR available with `cdrs: null` and a safe `cdrs_error`. **Implementation limit:**
+the detail service reads at most 1,000 CDRs for one session and sets `cdrs_truncated` plus an
+anomaly if there are more. This differs from the specification's requirement to return every
+associated CDR and should be considered when investigating sessions with unusually many legs.
+
+### Lookups
+
+```http
+GET /api/admin/cdr/lookups/ingress-ip-groups/
+GET /api/admin/cdr/lookups/egress-ip-groups/
+GET /api/admin/cdr/lookups/termination-reasons/
+```
+
+IP-group values are distinct SDR values, excluding null/blank entries, sorted alphabetically and
+capped at 1,000. Termination values are distinct over the four SDR fields in the configured recent
+window (default 30 days). Results are shared-cached for the configured lifetime (default 900
+seconds); if refresh fails and a last-known-good value is available (up to 24 hours), it is
+returned with `stale: true` and a safe error description. No lookup scans the CDR table.
+
+### Statistics
+
+```http
+GET /api/admin/cdr/statistics/summary/
+GET /api/admin/cdr/statistics/timeseries/
+GET /api/admin/cdr/statistics/ip-groups/
+GET /api/admin/cdr/statistics/termination-reasons/
+```
+
+Statistics accept the same bounded date range, applicable SDR filters and presets as search. They
+count one SDR as one call and use `setuptime`; null setup times cannot match the range. Summary
+returns total, successful, unsuccessful, unknown, success rate, average call duration and average
+time to connect, including sample/excluded counts. SDR `callduration` is text and only numeric
+strings are included in its average; duration units remain hundredths of a second. Unknown success
+is excluded from successful/unsuccessful counts and from the success-rate denominator.
+
+Timeseries returns zero-filled intervals. Hourly buckets are used up to the configured threshold
+(default 168 hours); longer ranges are daily. Daily boundaries use Australia/Sydney; hourly
+boundaries use UTC to keep both repeated local hours during daylight-saving fall-back distinct.
+IP-group statistics return the top 100 per direction; termination statistics return the top 10
+for each termination field. Statistics are cached for 300 seconds by default. Clicking a bucket
+in the UI drills down using its exact ISO start/end timestamps.
+
+### Display configuration and per-user preferences
+
+```http
+GET /api/admin/cdr/config/display/
+GET /api/admin/cdr/preferences/
+PUT /api/admin/cdr/preferences/
+```
+
+The display configuration exposes the Australia/Sydney timezone, filter/sort/page options,
+duration unit and default format, field help, configured user-defined field labels, and media
+thresholds. The preference endpoint accepts `{"duration_format":"seconds"}` or
+`{"duration_format":"hms"}` and persists the choice per Telephony Toolbox user in the
+application database. PUT requests require the existing CSRF token.
+
+### App Admin module settings
+
+```http
+GET /api/admin/cdr/settings/
+PUT /api/admin/cdr/settings/
+```
+
+The settings page is the supported configuration UI. Settings include primary/replica profiles,
+explicit active source, page/multi-select limits, cache lifetimes, termination lookup window,
+hourly bucket threshold, user-defined field labels/descriptions, media thresholds/units and help
+overrides. The update payload may contain `profiles.replica` and/or `profiles.primary`, each with
+host, port, database name, username, write-only `password`, SSL mode/root certificate,
+connect timeout and enabled state. A new profile requires a password; on update, omit or leave it
+blank to keep the existing stored credential. Responses return only `has_password`, never the
+plaintext or ciphertext.
+
+Updates use the existing CSRF/session stack, increment the shared configuration version, and
+record `cdr.settings.updated` through the existing audit service. Search requests and individual
+record views are not audited. The settings page advises using a SELECT-only database login, but
+does not verify database grants; the DBA must enforce and verify source immutability.
+
+### Errors and source availability
+
+CDR API errors use JSON with `detail` and stable `error_code`; invalid filters include an `errors`
+object. Common codes include `invalid_filters`, `range_too_large`, `sdr_not_found`,
+`source_not_configured`, `source_unavailable`, `source_configuration_error`, `source_timeout` and
+`source_query_cancelled`. Source statement timeout is 60 seconds and returns HTTP 504 with a
+controlled message. Connection/configuration failures return safe HTTP 503 errors; internal SQL,
+hostnames, credentials and traces are not returned.
+
+The existing App Admin health response includes an `audiocodes_cdr` source status from `SELECT 1`.
+The public liveness endpoint does not depend on this module, and no module-specific health or
+readiness endpoint is provided.
 
 ## Common Request Patterns
 

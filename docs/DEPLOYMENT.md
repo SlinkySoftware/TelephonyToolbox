@@ -9,11 +9,12 @@ Complete production deployment on RHEL 9 with nginx, Gunicorn, PostgreSQL, and s
 3. [Installation Steps](#installation-steps)
 4. [Configuration](#configuration)
 5. [Running the Application](#running-the-application)
-6. [SSL/TLS Setup](#ssltls-setup)
-7. [SELinux Configuration](#selinux-configuration)
-8. [Monitoring & Logs](#monitoring--logs)
-9. [Troubleshooting](#troubleshooting)
-10. [Upgrades](#upgrades)
+6. [AudioCodes CDR Module Operations](#audiocodes-cdr-module-operations)
+7. [SSL/TLS Setup](#ssltls-setup)
+8. [SELinux Configuration](#selinux-configuration)
+9. [Monitoring & Logs](#monitoring--logs)
+10. [Troubleshooting](#troubleshooting)
+11. [Upgrades](#upgrades)
 
 ---
 
@@ -251,6 +252,11 @@ cd /opt/telephonytoolbox
 sudo -u telephonytoolbox bash -c 'source venv/bin/activate && \
   python backend/manage.py migrate'
 
+# Create the shared Django cache table in the Telephony Toolbox application database.
+# This command must never be run against the AudioCodes source database.
+sudo -u telephonytoolbox bash -c 'source venv/bin/activate && \
+  python backend/manage.py createcachetable'
+
 # Collect static files (if any Django static files)
 sudo -u telephonytoolbox bash -c 'source venv/bin/activate && \
   python backend/manage.py collectstatic --noinput'
@@ -446,6 +452,183 @@ sudo systemctl status nginx
 ```
 
 ---
+
+## AudioCodes CDR Module Operations
+[implementation checklist](AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md#6-deployment--scripts)
+
+The AudioCodes CDR feature runs inside the existing Telephony Toolbox SPA and Django/Gunicorn
+service. It does not require a new systemd unit, virtual environment, database, hostname, Nginx
+site, or login flow. Its external source connection is configured after deployment from the
+App Admin page at `/admin/cdr/settings`.
+
+### Deployment status and prerequisites
+
+The CDR backend is implemented, but current install/upgrade automation does **not** yet provision
+all of its runtime prerequisites. Before enabling this feature in production, an operator must:
+
+1. Provision and independently verify a least-privilege, SELECT-only AudioCodes source account
+  (steps below).
+2. Set and protect `CDR_SOURCE_ENCRYPTION_KEY` in the existing backend environment file.
+3. Create the `telephonytoolbox_cache` table in the application database after migrations using
+  `manage.py createcachetable` (also shown in installation Step 8). The deployment scripts do
+  not currently execute this management command.
+4. Configure the replica/primary source profiles and active source from the in-app App Admin
+  settings page, then verify the existing admin health report.
+5. Complete the deployment-level logging and timeout work noted below before relying on long
+  searches in production.
+
+The current install/upgrade scripts do not generate the CDR encryption key, add it to
+`scripts/env.example`, or execute `createcachetable`. Without the cache table, lookup and
+statistics caching degrades to uncached operation. Without a valid key, the UI cannot save or use
+source credentials. Preserve the key separately from the database backup; loss of the key makes
+stored encrypted credentials unusable.
+
+### Provision a read-only source login
+
+Create the account on the AudioCodes source PostgreSQL 17 database through the DBA's normal
+change process. Replace the role/database placeholders and provide the password interactively or
+through the DBA's secure secret-management process; do not place a real credential in shell
+history or documentation.
+
+```psql
+CREATE ROLE telephonytoolbox_cdr_reader
+  LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+\password telephonytoolbox_cdr_reader
+GRANT CONNECT ON DATABASE <audiocodes_database> TO telephonytoolbox_cdr_reader;
+\connect <audiocodes_database>
+GRANT USAGE ON SCHEMA public TO telephonytoolbox_cdr_reader;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM telephonytoolbox_cdr_reader;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM telephonytoolbox_cdr_reader;
+REVOKE CREATE ON SCHEMA public FROM telephonytoolbox_cdr_reader;
+GRANT SELECT ON TABLE public.sdr, public.cdr TO telephonytoolbox_cdr_reader;
+```
+
+The account must not own either source table, be a superuser, or inherit a role with write or
+schema-management rights. Review grants and memberships on the actual source deployment; do not
+assume the sample statements remove privileges inherited from other roles. As the source login,
+verify only the required reads succeed and all write/schema privileges are absent. For example,
+DBAs can inspect effective privileges with:
+
+```sql
+SELECT current_user,
+       has_table_privilege(current_user, 'public.sdr', 'SELECT') AS can_read_sdr,
+       has_table_privilege(current_user, 'public.cdr', 'SELECT') AS can_read_cdr,
+       has_table_privilege(current_user, 'public.sdr', 'INSERT') AS can_insert_sdr,
+       has_table_privilege(current_user, 'public.sdr', 'UPDATE') AS can_update_sdr,
+       has_table_privilege(current_user, 'public.sdr', 'DELETE') AS can_delete_sdr,
+       has_table_privilege(current_user, 'public.sdr', 'TRUNCATE') AS can_truncate_sdr,
+       has_table_privilege(current_user, 'public.cdr', 'INSERT') AS can_insert_cdr,
+       has_table_privilege(current_user, 'public.cdr', 'UPDATE') AS can_update_cdr,
+       has_table_privilege(current_user, 'public.cdr', 'DELETE') AS can_delete_cdr,
+       has_table_privilege(current_user, 'public.cdr', 'TRUNCATE') AS can_truncate_cdr,
+       has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_in_public;
+```
+
+Expected results are `can_read_sdr=true`, `can_read_cdr=true`, and all write/create checks
+`false`. Also inspect role memberships and ownership; the privilege query alone does not establish
+that no inherited path exists. Do not run Django migrations, `createcachetable`, or any schema
+management operation against the AudioCodes database. The application does not create source
+tables, indexes, constraints or sequences.
+
+### Configure the module and encryption key
+
+Generate one Fernet key using the backend virtual environment:
+
+```bash
+sudo -u telephonytoolbox /opt/telephonytoolbox/venv/bin/python -c \
+  'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+```
+
+Set the generated value as `CDR_SOURCE_ENCRYPTION_KEY` in
+`/etc/telephonytoolbox/backend.env` using the site's protected configuration process. Do not
+commit, log, or include it in a support ticket. Keep the key outside PostgreSQL, and back it up
+securely alongside (but separately from) the application database. For key rotation, configure a
+comma-separated list with the new Fernet key first and the prior key afterward; re-enter source
+profile passwords to encrypt them with the new first key before retiring the prior key. See
+[CONFIGURATION.md](CONFIGURATION.md#audiocodes-cdr-module-configuration) for the complete key
+and settings model.
+
+Use the existing deployment's environment-file permissions and restart the existing
+`telephonytoolbox` service after changing environment configuration. Then sign in as an App Admin
+and save the read-replica profile at `/admin/cdr/settings`. Select `replica` as active when
+available. Configure `primary` only as an explicit alternative; the module never fails over
+automatically. The credential is encrypted in the application database. Settings responses expose
+only a `has_password` indicator.
+
+The profile supports SSL modes `disable`, `prefer`, `require`, `verify-ca` and `verify-full`; set
+the strongest mode supported by the source, with the required CA material. The app connection
+also sets a 60-second statement timeout, `default_transaction_read_only=on`, and `search_path=public`.
+These are defense-in-depth; the PostgreSQL read-only account is mandatory.
+
+### Application database cache
+
+`CACHES['default']` uses Django `DatabaseCache` and the application database table
+`telephonytoolbox_cache`. Run the normal application migrations first, then create the table once
+in the same Telephony Toolbox database:
+
+```bash
+sudo -u telephonytoolbox bash -c 'source /opt/telephonytoolbox/venv/bin/activate && \
+  cd /opt/telephonytoolbox/backend && python manage.py createcachetable'
+```
+
+The source connection router and migration guard prevent this table from being created in the
+AudioCodes database. If the cache is missing, the module catches cache database errors and
+continues without caching; lookup refreshes and statistics can then cause repeated source reads.
+
+### Health, backup, logs and troubleshooting
+
+The existing App Admin health endpoint (`GET /api/admin/health/`) includes an
+`audiocodes_cdr` status based on a read-only `SELECT 1`. A source failure makes the module
+unavailable but does not alter public liveness or other Telephony Toolbox functions. The admin
+report uses concise messages and does not return the source password, host or database name.
+
+Application database backups contain module settings, user preferences and encrypted source
+credentials; keep the corresponding Fernet key in protected backup storage. AudioCodes SDR/CDR
+tables are external and must never be included in Telephony Toolbox migrations or application
+database backup/restore jobs. They remain subject to the AudioCodes database owner's own DBA
+backup and recovery process.
+
+Search filter state is carried in the `/admin/cdr` URL query so navigation can restore a search.
+ANI, DNIS and Call-ID may therefore appear in browser history and in current proxy access logs.
+Although Django request-timing logging strips CDR query strings and a redacting Gunicorn logger is
+present in the codebase, the current deployment script does not enable that logger and does not
+configure Nginx access-log query redaction. Restrict access to logs and avoid sharing CDR search
+URLs. Enable and validate proxy/Gunicorn redaction as deployment work before treating the query
+values as protected from access logs.
+
+The source statement timeout is 60 seconds, while the current script-generated Gunicorn
+configuration still uses four synchronous workers and a 60-second worker timeout, and the
+generated Nginx API location does not set `proxy_read_timeout` (Nginx's default is 60 seconds).
+An exact count followed by page retrieval can exceed the total worker/proxy window even though
+each individual source statement is bounded. This deployment configuration has not yet been
+aligned with the source timeout; use narrow date ranges and prefer exact/prefix matching until it
+is. Track the required Gunicorn worker/timeout, Nginx timeout and request-log changes in the
+[implementation checklist](AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md#deployment--scripts).
+
+Other operational details: IP-group lookups return at most 1,000 values; statistics cap each
+direction at 100 IP groups and each termination field at 10 values. A session detail returns no
+more than 1,000 CDRs and displays a truncation warning if additional legs share its session ID.
+Use the source index guidance in [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md);
+index changes are DBA-managed and are never applied by the application.
+
+| Symptom | Checks |
+|---|---|
+| Source reports not configured | Check active source selection, profile enabled state and profile fields in `/admin/cdr/settings`. |
+| Credential cannot be saved/decrypted | Check `CDR_SOURCE_ENCRYPTION_KEY` status; confirm the key is valid and is the key used to encrypt the stored credential. |
+| Source unavailable | Check network/TLS reachability and the source login/grants; never paste credentials into logs or tickets. |
+| Search returns a controlled timeout | Narrow the range, use exact/prefix matching, and verify source indexes using DBA procedures. |
+| Lookups/statistics repeatedly refresh | Confirm the `telephonytoolbox_cache` table exists in the application database. |
+| Session shows fewer than expected CDR legs | Check the visible truncation warning; responses are capped at 1,000 legs. |
+
+### Outstanding deployment automation
+
+The current scripts still need a separate deployment change to: preserve/generate and install the
+encryption key without overwriting an existing key; include the key name in the environment
+template; run `createcachetable` during application database setup; configure a worker/proxy
+timeout window that safely exceeds the 60-second source statement timeout; enable the existing
+Gunicorn redacting logger; and configure Nginx to log CDR paths without query strings. This
+documentation records the current behavior; it does not claim those deployment changes have been
+made.
 
 ## SSL/TLS Setup
 
