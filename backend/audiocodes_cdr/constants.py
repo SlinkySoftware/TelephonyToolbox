@@ -38,6 +38,3 @@ MEDIA_QUALITY_METRICS = {
     'local_round_trip_delay': 'localroundtripdelay',
     'remote_round_trip_delay': 'remoteroundtripdelay',
 }
-
-# Upper bound on CDR legs returned for one session; protects against a degenerate shared sessionid.
-MAX_CDRS_PER_SESSION = 1000

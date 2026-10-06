@@ -294,12 +294,14 @@ Environment="PYTHONUNBUFFERED=1"
 # Start command
 ExecStart=/opt/telephonytoolbox/venv/bin/gunicorn \
   --workers 4 \
-  --worker-class=sync \
+  --worker-class=gthread \
+  --threads 4 \
   --bind=127.0.0.1:8010 \
   --access-logfile=/var/log/telephonytoolbox/gunicorn-access.log \
+  --logger-class=telephony_toolbox.gunicorn_logging.RedactingLogger \
   --error-logfile=/var/log/telephonytoolbox/gunicorn-error.log \
   --log-level info \
-  --timeout 300 \
+  --timeout 150 \
   telephony_toolbox.wsgi:application
 
 # Restart policy
@@ -349,6 +351,21 @@ upstream gunicorn {
     server 127.0.0.1:8010;
 }
 
+# Keep AudioCodes CDR search values (ANI/DNIS/Call-ID) out of the access log.
+map $request_uri $telephonytoolbox_log_request_uri {
+    default $request_uri;
+    "~^(/(?:api/)?admin/cdr[^?]*)\?" $1;
+}
+
+map $http_referer $telephonytoolbox_log_referer {
+    default $http_referer;
+    "~^([a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]+)?(/(?:api/)?admin/cdr[^?#]*)[?#]" $1$2;
+}
+
+log_format telephonytoolbox_redacted '$remote_addr - $remote_user [$time_local] '
+    '"$request_method $telephonytoolbox_log_request_uri $server_protocol" $status $body_bytes_sent '
+    '"$telephonytoolbox_log_referer" "$http_user_agent"';
+
 # Redirect HTTP to HTTPS
 server {
     listen 80;
@@ -385,7 +402,7 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     # Access logs
-    access_log /var/log/telephonytoolbox/nginx-access.log;
+    access_log /var/log/telephonytoolbox/nginx-access.log telephonytoolbox_redacted;
     error_log /var/log/telephonytoolbox/nginx-error.log;
 
     # Gzip compression
@@ -409,10 +426,10 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
         
-        # Timeouts
+        # Timeouts: read must exceed two sequential 60s AudioCodes source statements
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        proxy_read_timeout 150s;
         
         # Buffering
         proxy_buffering on;
@@ -463,25 +480,30 @@ App Admin page at `/admin/cdr/settings`.
 
 ### Deployment status and prerequisites
 
-The CDR backend is implemented, but current install/upgrade automation does **not** yet provision
-all of its runtime prerequisites. Before enabling this feature in production, an operator must:
+The RHEL install/upgrade scripts provision the module's runtime prerequisites:
+
+- generate `CDR_SOURCE_ENCRYPTION_KEY` in the backend environment file when it is missing or
+  blank, and never replace a non-empty value;
+- run `manage.py createcachetable` against the application database after migrations;
+- run Gunicorn with `gthread` workers (4 workers × 4 threads), a 150-second timeout and the
+  redacting access logger;
+- set Nginx `proxy_read_timeout 150s` on the API location and log CDR request URIs and referers
+  without query strings.
+
+Before enabling the feature in production, an operator must still:
 
 1. Provision and independently verify a least-privilege, SELECT-only AudioCodes source account
   (steps below).
-2. Set and protect `CDR_SOURCE_ENCRYPTION_KEY` in the existing backend environment file.
-3. Create the `telephonytoolbox_cache` table in the application database after migrations using
-  `manage.py createcachetable` (also shown in installation Step 8). The deployment scripts do
-  not currently execute this management command.
+2. Back up `CDR_SOURCE_ENCRYPTION_KEY` from the backend environment file in protected storage,
+  separately from database backups.
+3. Confirm any upstream load balancer (for example the F5) allows at least 150 seconds of idle
+  time for `/api/` requests.
 4. Configure the replica/primary source profiles and active source from the in-app App Admin
   settings page, then verify the existing admin health report.
-5. Complete the deployment-level logging and timeout work noted below before relying on long
-  searches in production.
 
-The current install/upgrade scripts do not generate the CDR encryption key, add it to
-`scripts/env.example`, or execute `createcachetable`. Without the cache table, lookup and
-statistics caching degrades to uncached operation. Without a valid key, the UI cannot save or use
-source credentials. Preserve the key separately from the database backup; loss of the key makes
-stored encrypted credentials unusable.
+Without the cache table, lookup and statistics caching degrades to uncached operation. Without a
+valid key, the UI cannot save or use source credentials. Loss of the key makes stored encrypted
+credentials unusable.
 
 ### Provision a read-only source login
 
@@ -532,7 +554,8 @@ tables, indexes, constraints or sequences.
 
 ### Configure the module and encryption key
 
-Generate one Fernet key using the backend virtual environment:
+The install/upgrade scripts generate the key when it is missing or blank. For manual deployments,
+generate one Fernet key using the backend virtual environment:
 
 ```bash
 sudo -u telephonytoolbox /opt/telephonytoolbox/venv/bin/python -c \
@@ -563,8 +586,9 @@ These are defense-in-depth; the PostgreSQL read-only account is mandatory.
 ### Application database cache
 
 `CACHES['default']` uses Django `DatabaseCache` and the application database table
-`telephonytoolbox_cache`. Run the normal application migrations first, then create the table once
-in the same Telephony Toolbox database:
+`telephonytoolbox_cache`. The install/upgrade scripts create it after migrations. For manual
+deployments, run the normal application migrations first, then create the table once in the same
+Telephony Toolbox database:
 
 ```bash
 sudo -u telephonytoolbox bash -c 'source /opt/telephonytoolbox/venv/bin/activate && \
@@ -589,25 +613,23 @@ database backup/restore jobs. They remain subject to the AudioCodes database own
 backup and recovery process.
 
 Search filter state is carried in the `/admin/cdr` URL query so navigation can restore a search.
-ANI, DNIS and Call-ID may therefore appear in browser history and in current proxy access logs.
-Although Django request-timing logging strips CDR query strings and a redacting Gunicorn logger is
-present in the codebase, the current deployment script does not enable that logger and does not
-configure Nginx access-log query redaction. Restrict access to logs and avoid sharing CDR search
-URLs. Enable and validate proxy/Gunicorn redaction as deployment work before treating the query
-values as protected from access logs.
+ANI, DNIS and Call-ID may therefore appear in browser history. Django request-timing logs strip
+CDR query strings; the script-generated Gunicorn service uses
+`telephony_toolbox.gunicorn_logging.RedactingLogger`; and the generated Nginx site logs with a
+redacted `log_format` that drops the query string from `/admin/cdr` and `/api/admin/cdr/` request
+URIs and referers. Nginx error-log entries for upstream failures (for example a proxy timeout)
+still include the full request line and referer, so restrict access to logs and avoid sharing CDR
+search URLs.
 
-The source statement timeout is 60 seconds, while the current script-generated Gunicorn
-configuration still uses four synchronous workers and a 60-second worker timeout, and the
-generated Nginx API location does not set `proxy_read_timeout` (Nginx's default is 60 seconds).
-An exact count followed by page retrieval can exceed the total worker/proxy window even though
-each individual source statement is bounded. This deployment configuration has not yet been
-aligned with the source timeout; use narrow date ranges and prefer exact/prefix matching until it
-is. Track the required Gunicorn worker/timeout, Nginx timeout and request-log changes in the
-[implementation checklist](AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md#deployment--scripts).
+The source statement timeout is 60 seconds and a search issues an exact count followed by a page
+query. The script-generated Gunicorn service therefore uses `gthread` workers (4 workers × 4
+threads) with a 150-second timeout, and the Nginx API location sets `proxy_read_timeout 150s`.
+Threads keep a slow source query from occupying a whole worker process. Override the shared
+value with `BACKEND_REQUEST_TIMEOUT` when running the scripts; keep it above 120 seconds.
 
 Other operational details: IP-group lookups return at most 1,000 values; statistics cap each
-direction at 100 IP groups and each termination field at 10 values. A session detail returns no
-more than 1,000 CDRs and displays a truncation warning if additional legs share its session ID.
+direction at 100 IP groups and each termination field at 10 values. A session detail returns
+every CDR sharing the SDR session ID.
 Use the source index guidance in [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md);
 index changes are DBA-managed and are never applied by the application.
 
@@ -618,17 +640,7 @@ index changes are DBA-managed and are never applied by the application.
 | Source unavailable | Check network/TLS reachability and the source login/grants; never paste credentials into logs or tickets. |
 | Search returns a controlled timeout | Narrow the range, use exact/prefix matching, and verify source indexes using DBA procedures. |
 | Lookups/statistics repeatedly refresh | Confirm the `telephonytoolbox_cache` table exists in the application database. |
-| Session shows fewer than expected CDR legs | Check the visible truncation warning; responses are capped at 1,000 legs. |
-
-### Outstanding deployment automation
-
-The current scripts still need a separate deployment change to: preserve/generate and install the
-encryption key without overwriting an existing key; include the key name in the environment
-template; run `createcachetable` during application database setup; configure a worker/proxy
-timeout window that safely exceeds the 60-second source statement timeout; enable the existing
-Gunicorn redacting logger; and configure Nginx to log CDR paths without query strings. This
-documentation records the current behavior; it does not claim those deployment changes have been
-made.
+| Search fails with a gateway timeout instead of a controlled timeout | Confirm Gunicorn runs `gthread` with `--timeout 150`, Nginx `/api/` has `proxy_read_timeout 150s`, and any upstream load balancer allows at least 150 seconds. |
 
 ## SSL/TLS Setup
 

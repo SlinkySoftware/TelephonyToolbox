@@ -322,8 +322,8 @@ When a permitted test source is configured, verify the module in the existing ap
   requests are denied by the backend.
 - Searches require setup-time bounds, reject reversed or over-12-month ranges, return exact
   counts, and keep pagination/sorting server-side.
-- Opening an SDR returns associated CDRs ordered by leg ID and ID; check raw `callorig`, parsed
-  tags, correlation warnings and the visible 1,000-leg cap warning where applicable.
+- Opening an SDR returns every associated CDR ordered by leg ID and ID; check raw `callorig`,
+  parsed tags and correlation warnings.
 - Duration preference persists after reauthentication; timestamps render in Australia/Sydney.
 - Settings updates use CSRF, persist no plaintext password, and create the existing
   `cdr.settings.updated` audit event.

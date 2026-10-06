@@ -8,7 +8,6 @@ from collections import Counter
 from django.db.models import F
 
 from audiocodes_cdr.connection import source_errors, source_session
-from audiocodes_cdr.constants import MAX_CDRS_PER_SESSION
 from audiocodes_cdr.display import (
     DIRECTION_LABELS,
     DIRECTION_UNKNOWN,
@@ -32,7 +31,7 @@ def _stripped(value):
     return None if is_blank(value) else value.strip()
 
 
-def detect_anomalies(sdr, cdrs, truncated=False):
+def detect_anomalies(sdr, cdrs):
     """Correlation diagnostics. They never exclude a CDR. ``cdrs`` is None when the CDR query failed."""
     anomalies = []
 
@@ -45,12 +44,6 @@ def detect_anomalies(sdr, cdrs, truncated=False):
         return anomalies
     if not cdrs and not is_blank(sdr['sessionid']):
         add('no_matching_cdrs', SEVERITY_WARNING, 'No CDRs share this SDR session ID.')
-    if truncated:
-        add(
-            'cdrs_truncated',
-            SEVERITY_WARNING,
-            f'More than {MAX_CDRS_PER_SESSION} CDRs share this session ID; only the first {MAX_CDRS_PER_SESSION} are shown.',
-        )
 
     leg_counts = Counter(cdr['legid'] for cdr in cdrs if cdr['legid'] is not None)
     duplicates = sorted(legid for legid, count in leg_counts.items() if count > 1)
@@ -133,8 +126,7 @@ def serialize_cdr(row):
 
 def _fetch_cdrs(sessionid):
     ordered = Cdr.objects.filter(sessionid=sessionid).order_by(F('legid').asc(nulls_last=True), 'id')
-    rows = list(ordered.values(*CDR_FIELDS)[:MAX_CDRS_PER_SESSION + 1])
-    return rows[:MAX_CDRS_PER_SESSION], len(rows) > MAX_CDRS_PER_SESSION
+    return list(ordered.values(*CDR_FIELDS))
 
 
 def get_session_detail(sdr_id, module_settings):
@@ -146,21 +138,20 @@ def get_session_detail(sdr_id, module_settings):
     if sdr is None:
         raise SdrNotFound()
 
-    cdrs, cdrs_error, truncated = [], None, False
+    cdrs, cdrs_error = [], None
     if not is_blank(sdr['sessionid']):
         # The SDR stays visible if the (potentially slow) CDR lookup fails.
         try:
             with source_errors():
-                cdrs, truncated = _fetch_cdrs(sdr['sessionid'])
+                cdrs = _fetch_cdrs(sdr['sessionid'])
         except CdrSourceError as exc:
             cdrs, cdrs_error = None, {'detail': exc.message, 'error_code': exc.error_code}
 
-    anomalies = detect_anomalies(sdr, cdrs, truncated)
+    anomalies = detect_anomalies(sdr, cdrs)
     return {
         'sdr': serialize_sdr(sdr),
         'cdrs': [serialize_cdr(row) for row in cdrs] if cdrs is not None else None,
         'cdrs_error': cdrs_error,
-        'cdrs_truncated': truncated,
         'anomalies': anomalies,
         'anomaly_level': anomaly_level(anomalies),
     }

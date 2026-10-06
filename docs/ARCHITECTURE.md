@@ -619,15 +619,12 @@ as a stable tie-breaker. `globalsessionid` and Call-ID are diagnostic display fi
 keys. Source statements are limited to 60 seconds. Contains/ends-with filters can still be costly
 and should be used over appropriately narrow ranges.
 
-There is a hard implementation cap of 1,000 CDR rows for a single session detail response. The
-API indicates truncation and the UI warns when more rows match. This is a known functional
-limitation: the specification requires every matching CDR to be returned.
+Session detail returns every CDR that shares the SDR session ID; there is no row cap.
 
 Lookups and statistics use Django's shared `DatabaseCache` in the application database. Lookup
 refreshes query only SDR columns; termination values are bounded to a configurable recent window.
-Cache failures degrade to uncached source reads. The cache table must therefore be created in the
-application database with `manage.py createcachetable`; current install/upgrade scripts do not
-create it automatically.
+Cache failures degrade to uncached source reads. The RHEL install/upgrade scripts create the
+cache table in the application database with `manage.py createcachetable` after migrations.
 
 Statistics count one SDR as one call and aggregate on the source using setup time. Hourly buckets
 are aligned in UTC so both instances of the repeated Sydney hour during daylight-saving fall-back
@@ -648,21 +645,19 @@ The existing admin health report adds an `audiocodes_cdr` status from a lightwei
 does not take down unrelated Telephony Toolbox functions. The status does not expose credentials
 or database addresses.
 
-The application timing middleware removes query strings for CDR paths when it logs requests, and
-a Gunicorn redacting logger is present. However, the current deployment script does not enable
-that Gunicorn logger or configure Nginx query-string redaction. Search filter values are kept in
-the SPA route query for state restoration, and the current Nginx access log includes request
-URIs; ANI, DNIS and Call-ID values may consequently appear in browser history and access logs.
-Treat those values as sensitive operational data, restrict log access, and do not share search
-URLs until deployment-level redaction is configured.
+The application timing middleware removes query strings for CDR paths when it logs requests. The
+script-generated Gunicorn service uses the redacting access logger, and the generated Nginx site
+logs CDR request URIs and referers without query strings. Search filter values are still kept in
+the SPA route query for state restoration, so ANI, DNIS and Call-ID values can appear in browser
+history and, when Nginx reports an upstream error, in the Nginx error log. Treat those values as
+sensitive operational data, restrict log access, and avoid sharing search URLs.
 
 ### As-built operational differences
 
-- Source connection timeout is 60 seconds, while the current deployment script still uses four
-  synchronous Gunicorn workers with a 60-second worker timeout and does not set an Nginx API
-  `proxy_read_timeout`. Long count/search requests may be cut off before a controlled response;
-  keep date ranges narrow and avoid expensive wildcard searches until deployment timeout settings
-  are aligned.
+- Source statements time out after 60 seconds. A search issues an exact count and a page query,
+  so the script-generated Gunicorn service uses `gthread` workers (4 × 4 threads) with a
+  150-second timeout and the Nginx API location sets `proxy_read_timeout 150s`. Any upstream
+  load balancer (for example the F5) must allow at least the same idle time.
 - The settings UI limits each profile to a `SELECT`-only recommendation but does not inspect
   effective PostgreSQL grants. DBA provisioning and verification are mandatory.
 - Default “today” end time is rounded up to the next minute to improve cache-key reuse, rather
@@ -672,6 +667,6 @@ URLs until deployment-level redaction is configured.
   to 200.
 
 See [AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md](AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) for
-the full verified checklist and outstanding deployment tasks, and
+the full verified checklist and known implementation differences, and
 [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md) for DBA-only
 index guidance. No source index is created by Telephony Toolbox.

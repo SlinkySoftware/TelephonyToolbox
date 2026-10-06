@@ -176,15 +176,6 @@ SPDX-License-Identifier: GPL-3.0-only
           </template>
         </q-banner>
 
-        <q-banner
-          v-if="detail.cdrs_truncated"
-          rounded
-          class="cdr-banner cdr-banner--warning q-mb-md"
-        >
-          <template #avatar><q-icon name="warning" /></template>
-          Only the first {{ detail.cdrs?.length }} CDRs sharing this session ID are shown.
-        </q-banner>
-
         <div v-if="detail.cdrs && !detail.cdrs.length" class="cdr-empty">
           <q-icon name="link_off" size="1.6rem" />
           <div>{{ noCdrMessage }}</div>

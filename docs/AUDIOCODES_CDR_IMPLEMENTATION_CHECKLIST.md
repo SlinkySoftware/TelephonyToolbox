@@ -1,8 +1,8 @@
 # AudioCodes CDR Module — Implementation Checklist
 
-Working checklist for implementing [audiocodes-cdr-manager-specification.md](audiocodes-cdr-manager-specification.md) inside Telephony Toolbox. Checkboxes below reflect the repository state verified on 2026-10-06; they distinguish implemented application code from outstanding deployment automation and specification gaps.
+Working checklist for implementing [audiocodes-cdr-manager-specification.md](audiocodes-cdr-manager-specification.md) inside Telephony Toolbox. Checkboxes below reflect the repository state verified on 2026-10-07.
 
-**Status:** Backend and frontend feature code and the documentation updates are present. Deployment-script integration is incomplete. The implementation caps CDR detail at 1,000 legs per SDR, rounds the default-today end boundary up to the next minute, and has not yet had all production logging/timeout prerequisites wired into the deployment scripts. See [Deployment / Scripts](#6-deployment--scripts) and [known implementation differences](#known-implementation-differences).
+**Status:** Backend, frontend, documentation and deployment-script work is complete. Session detail returns every associated CDR. Remaining differences from the specification are accepted decisions recorded under [known implementation differences](#known-implementation-differences).
 
 ## Table of Contents
 
@@ -20,12 +20,12 @@ Working checklist for implementing [audiocodes-cdr-manager-specification.md](aud
 
 | # | Finding | Impact |
 |---|---|---|
-| F1 | Gunicorn `--timeout 60`, `sync`, 4 workers ([rhel-deploy-common.sh](../scripts/rhel-deploy-common.sh#L509)); nginx `/api/` has no `proxy_read_timeout` (default 60s) ([L572](../scripts/rhel-deploy-common.sh#L572)) | **Outstanding:** current app source statement timeout is 60s; deploy worker/proxy windows still need alignment. |
-| F2 | No shared cache was configured at scan time | **Implemented:** `DatabaseCache` uses the application DB; deploy scripts still need to run `createcachetable`. |
+| F1 | Gunicorn was `--timeout 60`, `sync`, 4 workers; nginx `/api/` had no `proxy_read_timeout` (default 60s) | **Implemented:** [rhel-deploy-common.sh](../scripts/rhel-deploy-common.sh) uses `gthread` 4 × 4, `--timeout 150` and `proxy_read_timeout 150s` (shared `BACKEND_REQUEST_TIMEOUT`). |
+| F2 | No shared cache was configured at scan time | **Implemented:** `DatabaseCache` uses the application DB; `run_migrations` runs `createcachetable`. |
 | F3 | `cryptography` was absent at scan time | **Implemented:** pinned backend dependency and Fernet/MultiFernet credential protection. |
 | F4 | ECharts was absent at scan time; deploy uses npm + `package-lock.json` | **Implemented:** ECharts is in frontend dependencies and used by statistics charts. |
-| F5 | Existing [health/services.py](../backend/health/services.py) `_database_status()` returns `str(exc)` | **Partial:** AudioCodes source status uses safe generic errors; pre-existing application DB health error handling remains unchanged. |
-| F6 | [middleware.py](../backend/telephony_toolbox/middleware.py) and access logs could expose CDR query values | **Partial:** Django timing middleware and a Gunicorn redacting logger exist; current scripts do not enable Gunicorn redaction or configure Nginx redaction. |
+| F5 | Existing [health/services.py](../backend/health/services.py) `_database_status()` returns `str(exc)` | **Implemented for CDR:** AudioCodes source status uses safe generic errors. Pre-existing application DB/CUCM health messages intentionally unchanged (D19). |
+| F6 | [middleware.py](../backend/telephony_toolbox/middleware.py) and access logs could expose CDR query values | **Implemented:** Django timing middleware, the Gunicorn `RedactingLogger` (enabled by the deploy script) and an Nginx redacted `log_format` strip CDR query strings from request URIs and referers. |
 | F7 | `formatDateTime` in [format.js](../frontend/src/utils/format.js) uses browser TZ, no ms | **Implemented:** CDR-specific Sydney timestamp formatting preserves millisecond precision. |
 | F8 | Tests run on SQLite unless `DATABASE_NAME` is set | **Implemented:** unmanaged test tables are created in fixtures and statistics use portable ORM aggregation. |
 | F9 | Source credential lives in the app DB | **Implemented:** runtime source alias activation reads encrypted profiles from the app DB. |
@@ -43,11 +43,11 @@ Status: **confirmed** (2026-10-06).
 | D1c | Existing source indexes | None beyond primary keys. Recommendations in [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md); `cdr(sessionid)` is a prerequisite for usable session detail |
 | D2 | "12 months" definition | 12 calendar months in Australia/Sydney (`end <= start + 12 months`, day clamped to month end) |
 | D3 | Termination-reason lookup | Cached DISTINCT across the 4 SDR termination columns over a recent window; `termination_lookup_days` default 30 |
-| D4 | Cache backend | Django `DatabaseCache` in the app DB. **Current gap:** create the cache table manually; deployment scripts do not yet run `createcachetable`. |
-| D5 | Gunicorn / nginx | **Target decision, not deployed:** `gthread`, 4 workers × 4 threads, timeout 150s; nginx `proxy_read_timeout 150s`. Current scripts remain sync/60s and do not set the proxy timeout. |
-| D6 | Log redaction | **Partial:** Django timing middleware and Gunicorn redactor code strip CDR query strings; scripts do not enable the Gunicorn logger or configure Nginx access-log redaction. Search filters remain in browser route query state. |
+| D4 | Cache backend | Django `DatabaseCache` in the app DB; deploy scripts run `createcachetable` after migrations. |
+| D5 | Gunicorn / nginx | `gthread`, 4 workers × 4 threads, timeout 150s; nginx `proxy_read_timeout 150s`. Implemented in the deploy script and systemd template. |
+| D6 | Log redaction | Django timing middleware, Gunicorn `RedactingLogger` and an Nginx `map` + redacted `log_format` strip query strings from `/admin/cdr` and `/api/admin/cdr/` URIs and referers. Search filters remain in browser route query state; Nginx error-log entries for upstream failures still contain the request line. |
 | D7 | Encryption key | `CDR_SOURCE_ENCRYPTION_KEY`, comma-separated `MultiFernet` (first key encrypts, all decrypt) |
-| D7b | Key provisioning | **Target decision, not deployed:** install/upgrade scripts should generate the key only when absent and never overwrite it. Operators must currently set it manually. |
+| D7b | Key provisioning | Install/upgrade scripts generate the key when missing or blank (D17) and never overwrite a non-empty value. |
 | D8 | Source connectivity | Direct connection, no PgBouncer, server currently without TLS |
 | D8b | `sslmode` | Selectable per profile (`disable`/`prefer`/`require`/`verify-ca`/`verify-full`), default `prefer` |
 | D9 | Hourly/daily threshold | Hourly up to and including 7 days (`hourly_bucket_max_hours = 168`); daily beyond |
@@ -56,15 +56,20 @@ Status: **confirmed** (2026-10-06).
 | D12 | Cache lifetimes | Lookups 900s, statistics 300s |
 | D13 | Help content | Concise help written from public AudioCodes 7.4 SBC CDR documentation; no termination-reason explanations unless configured |
 | D14 | Dev source DB | Test fixtures only (unmanaged tables created in the test DB) |
+| D15 | CDR legs per session | No cap; session detail returns every CDR sharing the SDR `sessionid` (spec §10.1). |
+| D16 | Default-today end | Keep rounding up to the next minute for cache-key reuse. |
+| D17 | Blank encryption key in an existing env file | Treated as absent and generated. |
+| D18 | In-app source privilege check | None; SELECT-only provisioning and verification remain a DBA responsibility. |
+| D19 | Pre-existing app DB/CUCM health `str(exc)` messages | Leave unchanged (outside CDR scope). |
 
 ### Known implementation differences
 
-- Session detail caps associated CDRs at 1,000. It sets `cdrs_truncated` and a warning anomaly when additional records match; the UI displays a truncation warning. This does not satisfy the specification's requirement to return every associated CDR.
-- The default-today range ends at the next minute boundary rather than the exact current instant, to improve cache-key reuse.
+Accepted on 2026-10-07:
+
+- The default-today range ends at the next minute boundary rather than the exact current instant, to improve cache-key reuse (D16).
 - IP-group lookups return no more than 1,000 values. Statistics return at most 100 groups per direction and 10 values per termination field.
-- Source connection SSL mode is configurable, but the settings page does not verify effective PostgreSQL permissions. The DBA must provision and verify a dedicated SELECT-only role.
-- CDR search filters are held in route query parameters. Django timing middleware redacts those values, but current Nginx access logging still includes the request URI and the deployment scripts do not enable the Gunicorn redacting logger.
-- The source query timeout is 60 seconds. Current deployment automation still uses synchronous Gunicorn with a 60-second worker timeout and does not set Nginx `proxy_read_timeout`; an overall request can be terminated before a controlled API timeout response.
+- Source connection SSL mode is configurable, but the settings page does not verify effective PostgreSQL permissions. The DBA must provision and verify a dedicated SELECT-only role (D18).
+- CDR search filters are held in route query parameters, so they appear in browser history. Django, Gunicorn and Nginx access logs redact them; Nginx error-log entries for upstream failures do not.
 
 ### Source schema mapping
 
@@ -129,7 +134,7 @@ Implications:
 
 - [x] `timeutils.py` — Australia/Sydney parsing (DST `fold`), presets (today, last 24h/48h/7d, previous calendar month), 12-month validation, bucket generation with zero-fill
 - [x] `search.py` — Q builder (`setuptime` range first; match modes exact/startswith/endswith/contains OR'd across ingress/egress; IP-group `IN`; status incl. null), sort allow-list + `id DESC` tie-break, exact count then page, applied-filter summary
-- [x] `detail.py` — SDR by `id`; CDRs by `sessionid` ordered `legid ASC NULLS LAST, id ASC`; direction from `callorig`; tag parser (split on first `=`, preserve malformed); correlation anomaly checks with info/warning severity; `raw` / `display` separation
+- [x] `detail.py` — SDR by `id`; every CDR by `sessionid` ordered `legid ASC NULLS LAST, id ASC` (no cap, D15); direction from `callorig`; tag parser (split on first `=`, preserve malformed); correlation anomaly checks with info/warning severity; `raw` / `display` separation
   - A CDR query timeout/failure must not lose the SDR: return the SDR with `cdrs: null` and a `cdrs_error` code (needed until `cdr(sessionid)` index exists)
 - [x] `lookups.py` — cached DISTINCT ingress/egress IP groups (SDR only); termination reasons = DISTINCT over 4 SDR termination columns within the last `termination_lookup_days`
 - [x] `statistics.py` — ORM aggregations: summary, timeseries, IP groups, top termination reasons; numeric-only duration averages + excluded counts; unknown `issuccess` bucket; cached
@@ -178,12 +183,12 @@ Implications:
   - Placeholder `DATABASES['audiocodes_source']` (empty `NAME`, `TEST: {'MIRROR': 'default'}`)
   - `CDR_SOURCE_ENCRYPTION_KEY` env var
   - `CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'telephony_toolbox_cache'}}`
-- [x] New `backend/telephony_toolbox/gunicorn_logging.py` — redacting Gunicorn `Logger` subclass exists; **deployment script does not enable it yet** (D6)
+- [x] New `backend/telephony_toolbox/gunicorn_logging.py` — redacting Gunicorn `Logger` subclass, enabled by the deploy script via `--logger-class` (D6)
 - [x] [urls.py](../backend/telephony_toolbox/urls.py) — `path('api/', include('audiocodes_cdr.urls'))`
 - [x] [requirements.txt](../backend/requirements.txt) — add `cryptography`
 - [x] [health/services.py](../backend/health/services.py) — AudioCodes source status in `build_admin_health_report()` only (generic messages); liveness unaffected
 - [x] [test_healthcheck_api.py](../backend/health/tests/test_healthcheck_api.py) — assert liveness ignores source status
-- [x] [middleware.py](../backend/telephony_toolbox/middleware.py) — redact query strings from CDR paths in timing logs (D6); proxy access logs remain separately unredacted
+- [x] [middleware.py](../backend/telephony_toolbox/middleware.py) — redact query strings from CDR paths in timing logs (D6); Gunicorn and Nginx access logs are redacted by deployment configuration
 - [x] [api.py](../backend/telephony_toolbox/api.py) — safety net maps unhandled CDR `DatabaseError` to a generic 503
 
 ## 4. Frontend — new files
@@ -235,37 +240,36 @@ Implications:
 
 ## 6. Deployment / scripts
 
-- **Outstanding:** No deployment-script changes have been applied. Leave this section unchecked until key provisioning, cache-table creation, Gunicorn/Nginx timeout and access-log redaction work is implemented and verified.
+Verified by syntax check (`bash -n`) and by rendering the env, systemd and Nginx output in a sandbox. `nginx -t` has not been run locally; the script still validates with `nginx -t` and rolls back an invalid site on deployment.
 
-- [ ] [rhel-deploy-common.sh](../scripts/rhel-deploy-common.sh)
-  - Generate `CDR_SOURCE_ENCRYPTION_KEY` only when absent, never overwrite (near [L401](../scripts/rhel-deploy-common.sh#L401)); Fernet key without Python: `openssl rand -base64 32 | tr '+/' '-_'`
-  - Gunicorn ([L509](../scripts/rhel-deploy-common.sh#L509)): `--worker-class gthread --workers 4 --threads 4 --timeout 150 --logger-class telephony_toolbox.gunicorn_logging.RedactingLogger`
-  - nginx `/api/` ([L572](../scripts/rhel-deploy-common.sh#L572)): `proxy_read_timeout 150s;`
-  - nginx redaction: site-file-level `map $request_uri` + uniquely named `log_format` that logs `$uri` (no query) for `/api/admin/cdr/` and `/admin/cdr`; use it on `access_log`
-  - `run_migrations`: add `manage.py createcachetable`
-- [ ] [env.example](../scripts/env.example) — encryption key variable
-- [ ] Verify [upgrade-rhel-baremetal-stage2.sh](../scripts/upgrade-rhel-baremetal-stage2.sh) picks up changes via `write_backend_env` (expected: no edit)
+- [x] [rhel-deploy-common.sh](../scripts/rhel-deploy-common.sh)
+  - `ensure_cdr_source_encryption_key` generates `CDR_SOURCE_ENCRYPTION_KEY` (`openssl rand -base64 32 | tr '+/' '-_'`) when missing or blank; any non-empty value is left untouched. New env files include a commented placeholder.
+  - Gunicorn: `--worker-class gthread --workers 4 --threads 4 --timeout 150 --logger-class telephony_toolbox.gunicorn_logging.RedactingLogger`
+  - nginx `/api/`: `proxy_read_timeout 150s;` (`BACKEND_REQUEST_TIMEOUT` shared with Gunicorn)
+  - nginx redaction: site-level `map $request_uri` / `map $http_referer` and a `log_format` (names derived from `NGINX_SITE_NAME`) that drop query strings for `/admin/cdr` and `/api/admin/cdr/`. `$request_uri` is used rather than `$uri` because SPA routes are rewritten to `/index.html`.
+  - `run_migrations`: runs `manage.py createcachetable` after a successful `migrate`
+- [x] [telephonytoolbox-gunicorn.service.template](../scripts/templates/telephonytoolbox-gunicorn.service.template) — same Gunicorn flags
+- [x] [env.example](../scripts/env.example) — encryption key variable
+- [x] [upgrade-rhel-baremetal-stage2.sh](../scripts/upgrade-rhel-baremetal-stage2.sh) picks up the changes through `write_backend_env`, `run_migrations`, `write_systemd_service` and `write_nginx_site` (summary text only updated); [install-rhel-baremetal-stage2.sh](../scripts/install-rhel-baremetal-stage2.sh) next steps mention `createcachetable` and key backup
 
 ## 7. Documentation
 
-- [x] [ARCHITECTURE.md](ARCHITECTURE.md) — source alias, router/guards, data separation, query flow and operational gaps
+- [x] [ARCHITECTURE.md](ARCHITECTURE.md) — source alias, router/guards, data separation, query flow and operational differences
 - [x] [API_SPECIFICATION.md](API_SPECIFICATION.md) — `/api/admin/cdr/` endpoints, validation, response shapes and error codes
 - [x] [CONFIGURATION.md](CONFIGURATION.md) — encryption key, in-app settings, limits and cache
-- [x] [DEPLOYMENT.md](DEPLOYMENT.md) — read-only PG role DBA steps, cache/key setup, timeout/logging gaps and source DB backup/migration exclusion
+- [x] [DEPLOYMENT.md](DEPLOYMENT.md) — read-only PG role DBA steps, automated key/cache/timeout/log-redaction provisioning and source DB backup/migration exclusion
 - [x] [DEVELOPMENT.md](DEVELOPMENT.md) — unmanaged-table fixtures, `manage.py createcachetable`, and local source guidance
 - [x] [README.md](../README.md) — module summary and documentation links
 - [x] [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md) (spec §22.5) — SQL, rationale, `EXPLAIN (ANALYSE, BUFFERS)`, rollback
 
 ## 8. Implementation order
 
-Mapped to spec §34. Application feature implementation stages 1–5 are present; docs and index
-recommendations in stage 6 are present. Stage 6 remains incomplete because deployment-script
-work is outstanding. Stage 7 validation was not run as part of this documentation-only update.
+Mapped to spec §34. All stages are complete.
 
 1. [x] Source protection + connection → source models → app DB models + migration
 2. [x] Exceptions + base view → search + lookups → routes, stores, search page
 3. [x] Detail service → session page + leg cards → formatting utilities
 4. [x] Statistics service → statistics page + ECharts
 5. [x] Settings service + audit → settings page
-6. [ ] Health, logging, deployment scripts, docs, index recommendations (**partial**: health/logging code, docs and index recommendations are present; deployment scripts remain outstanding)
-7. [ ] Verify: `pytest`, `npm run lint:check`, `npm run build` (**not run for this documentation-only update**)
+6. [x] Health, logging, deployment scripts, docs, index recommendations
+7. [x] Verify (2026-10-07): `pytest` 243 passed, 1 pre-existing unrelated failure (`branding` `test_default_asset_is_blank_transparent_png`, caused by local `BRAND_*` overrides); ESLint passes; `npm run build` passes. `npm run lint:check` reports Prettier issues only in 6 pre-existing non-CDR files.

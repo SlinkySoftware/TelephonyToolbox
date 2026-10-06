@@ -1188,17 +1188,14 @@ preserved. Null fields remain null in JSON and are shown blank in the UI.
      "parsed_tags": {"sourcetags": [], "destinationtags": []}}
   ],
   "cdrs_error": null,
-  "cdrs_truncated": false,
   "anomalies": [],
   "anomaly_level": "none"
 }
 ```
 
 Anomaly severities are `info` and `warning`; no confidence score is produced. A CDR query failure
-can leave the SDR available with `cdrs: null` and a safe `cdrs_error`. **Implementation limit:**
-the detail service reads at most 1,000 CDRs for one session and sets `cdrs_truncated` plus an
-anomaly if there are more. This differs from the specification's requirement to return every
-associated CDR and should be considered when investigating sessions with unusually many legs.
+can leave the SDR available with `cdrs: null` and a safe `cdrs_error`. Every CDR sharing the
+SDR session ID is returned; the response is not truncated.
 
 ### Lookups
 

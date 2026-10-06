@@ -38,7 +38,7 @@ It is designed to be extensible so that if core telephony platforms are later mo
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) — Local development setup and testing
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md) — Production deployment on RHEL 9 with nginx and Gunicorn
 - [audiocodes-cdr-manager-specification.md](docs/audiocodes-cdr-manager-specification.md) — AudioCodes CDR module requirements and behaviour
-- [AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) — Implementation status, confirmed decisions, and outstanding deployment work
+- [AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) — Implementation status, confirmed decisions, and known implementation differences
 - [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](docs/AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md) — DBA-only source index recommendations; not applied by the application
 
 ## Quick Start: Local Development
@@ -219,12 +219,12 @@ deployment-only `CDR_SOURCE_ENCRYPTION_KEY`. App Admins configure profiles and m
 the in-app settings page; a read replica is selected by default and source failover is never
 automatic.
 
-Before production use, complete the AudioCodes source provisioning and deployment prerequisites
-in [DEPLOYMENT.md](docs/DEPLOYMENT.md), including the application cache table and encryption key.
-The implementation has two documented limits: a session detail request displays at most 1,000
-associated CDR legs, and current install/upgrade scripts do not yet provision all AudioCodes
-runtime prerequisites or redact CDR query parameters from Nginx access logs. See the
-[implementation checklist](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) for status and follow-up.
+Before production use, complete the AudioCodes source provisioning steps in
+[DEPLOYMENT.md](docs/DEPLOYMENT.md). The RHEL install/upgrade scripts generate the encryption key
+when it is blank (never overwriting an existing key), create the application cache table, align
+Gunicorn/Nginx request timeouts with the source statement timeout, and redact CDR query strings
+from Gunicorn and Nginx access logs. See the
+[implementation checklist](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) for status.
 
 ## Install and Upgrade Scripts
 
