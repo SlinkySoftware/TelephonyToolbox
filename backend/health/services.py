@@ -6,6 +6,7 @@ import os
 from django.conf import settings
 from django.db import connections
 
+from audiocodes_cdr.connection import probe_source
 from cucm.exceptions import CucmAuthenticationError, CucmUnavailableError
 from cucm.factory import get_cucm_client
 
@@ -100,6 +101,8 @@ def build_admin_health_report():
         'cucm': _cucm_status(),
         'auth': _auth_status(),
         'environment': _required_env_status(),
+        # Module-level availability only; deliberately excluded from the liveness check.
+        'audiocodes_cdr': probe_source(),
     }
 
 

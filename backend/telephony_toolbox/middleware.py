@@ -7,6 +7,8 @@ import time
 from django.conf import settings
 from django.db import connection
 
+from telephony_toolbox.log_redaction import redact_url
+
 
 logger = logging.getLogger('telephony_toolbox.perf')
 
@@ -54,7 +56,7 @@ class RequestTimingMiddleware:
         emit(
             'method=%s path=%s status=%s duration_ms=%.1f db_queries=%d db_time_ms=%.1f',
             request.method,
-            request.get_full_path(),
+            redact_url(request.get_full_path()),
             response.status_code,
             duration_ms,
             counter.count,
