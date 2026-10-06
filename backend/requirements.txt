@@ -2,7 +2,7 @@ Django==6.0.7
 djangorestframework==3.17.2
 django-filter==25.2
 authlib==1.7.2
-cryptography==49.0.0
+cryptography==50.0.0
 ldap3==2.9.1
 zeep==4.3.3
 psycopg[binary]==3.3.4
