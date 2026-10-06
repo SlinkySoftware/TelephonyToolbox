@@ -51,6 +51,27 @@ const routes = [
         component: () => import('pages/AdminHealthPage.vue'),
         meta: { adminOnly: true },
       },
+      {
+        path: 'admin/cdr',
+        component: () => import('pages/AdminCdrSearchPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/cdr/sessions/:id',
+        component: () => import('pages/AdminCdrSessionPage.vue'),
+        props: true,
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/cdr/statistics',
+        component: () => import('pages/AdminCdrStatisticsPage.vue'),
+        meta: { adminOnly: true },
+      },
+      {
+        path: 'admin/cdr/settings',
+        component: () => import('pages/AdminCdrSettingsPage.vue'),
+        meta: { adminOnly: true },
+      },
     ],
   },
 

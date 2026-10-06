@@ -4,7 +4,7 @@ Complete reference for all configuration options via environment variables.
 
 ## Overview
 
-Telephony Toolbox is configured entirely through environment variables, which are loaded from a `.env` file in the repository root during startup. This approach supports both local development and production deployment without code changes.
+Core Telephony Toolbox configuration is loaded from environment variables in the repository-root `.env` file. The AudioCodes CDR module's connection profiles, query settings, labels, thresholds, help overrides, and user display preferences are managed through the App Admin-only settings page and stored in the existing application database. The encryption key for source credentials remains deployment configuration, outside that database.
 
 See [scripts/env.example](../scripts/env.example) for a template file.
 
@@ -195,6 +195,95 @@ PostgreSQL password. Can be empty if database allows password-less access.
 **Ignored** if `DATABASE_NAME` is empty.
 
 ---
+### AudioCodes CDR Module Configuration
+
+The AudioCodes module is configured at `/admin/cdr/settings` by an App Admin. Do not add its
+source connection details to the application `DATABASE_*` settings: the application's primary
+database remains the store for users, sessions, audit records, module settings, preferences and
+cache entries. AudioCodes PostgreSQL is a separate read-only source connection, selected and
+stored from the settings UI. The read replica is selected by default; choosing a primary is an
+explicit administrator action. The module never switches sources automatically.
+
+#### `CDR_SOURCE_ENCRYPTION_KEY`
+
+**Type**: One Fernet key, or a comma-separated list of Fernet keys for key rotation
+**Required**: Required to save or use a source credential
+**Default**: Empty (source credential use is unavailable)
+
+This key is read from protected deployment configuration and is never stored in the application
+database. Source profile passwords are encrypted before persistence. A missing or invalid key
+fails closed; the settings UI indicates the key state. Never put this value in source control,
+browser configuration, or logs. Restrict access to the backend environment file and preserve the
+key securely with application database backups; if the key is lost, stored credentials cannot be
+decrypted and must be entered again.
+
+Generate a Fernet key from the installed backend environment, then place it in the protected
+environment file (not in this documentation):
+
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+The RHEL install/upgrade scripts generate a key automatically when `CDR_SOURCE_ENCRYPTION_KEY`
+is missing or blank in `/etc/telephonytoolbox/backend.env`. They never replace a non-empty value.
+
+For rotation, configure the new key first in the comma-separated list (used for new encryption)
+and retain the prior key after it (used for decryption). Re-enter stored profile passwords after
+the new key is active to re-encrypt them with the first key, then remove the old key only once no
+stored value depends on it.
+
+#### Settings persisted in the application database
+
+The settings page manages one optional `replica` profile and one optional `primary` profile. Each
+profile contains host, port, database name, username, encrypted password, SSL mode, optional root
+certificate, connection timeout, and enabled state. SSL mode choices are `disable`, `prefer`,
+`require`, `verify-ca`, and `verify-full`; the profile default is `prefer`. Use the strongest mode
+supported by the source deployment.
+
+Use a dedicated PostgreSQL source identity with effective `SELECT` access only to `public.sdr`
+and `public.cdr`. Application-side guards and `default_transaction_read_only` are defense in depth,
+not a replacement for PostgreSQL privileges. The application does not test effective grants or
+prove that the configured account is read-only. Do not use a superuser, source-table owner, or a
+role that inherits write privileges.
+
+Module settings persisted in the application database include:
+
+| Setting | Default | Bound / purpose |
+|---|---:|---|
+| Active source | `replica` | Explicit choice: replica or primary; no auto-failover |
+| Default page size | 100 | Choices 25, 50, 100, 250, 500, limited by max page size |
+| Maximum page size | 500 | Maximum 500 |
+| Maximum multi-select values | 50 | Configurable 1–200 |
+| Lookup cache lifetime | 900 seconds | Shared app database cache; 0 disables caching |
+| Statistics cache lifetime | 300 seconds | Shared app database cache; 0 disables caching |
+| Termination lookup window | 30 days | Configurable 1–365 days |
+| Hourly bucket threshold | 168 hours | Configurable 24–744 hours; longer statistics ranges are daily |
+| CDR user-defined fields | Default labels | `varcalluserdefined1`–`varcalluserdefined5` labels/descriptions |
+| Media quality | No thresholds | Configure units and warning/critical thresholds independently |
+| Field help | Built-in AudioCodes 7.4 | Per-field/topic and configured termination-value overrides |
+
+Per-user duration format (`seconds` or `hms`) is persisted in the same application database. No
+module preference is saved in browser local storage or the AudioCodes source. Settings writes use
+the existing Django session and CSRF mechanism and are recorded in the existing audit log as
+`cdr.settings.updated`; searches and record views are not audited.
+
+#### Source query and cache behaviour
+
+Every source connection sets a 60,000 ms PostgreSQL statement timeout and
+`default_transaction_read_only=on`. Search requires a bounded setup-time interval of at most 12
+calendar months, uses exact counts, and has server-side pages capped at 500. Contains/ends-with
+matching is supported but can be expensive; narrow the time range if it times out. Source failures
+do not disable login or unrelated Telephony Toolbox features.
+
+The shared Django cache is backed by the application database table
+`telephony_toolbox_cache`. It is not a source database table. See
+[DEPLOYMENT.md](DEPLOYMENT.md#application-database-cache) for initial setup. If the cache table
+is absent, cache calls log a warning and the module continues without caching, so lookup refreshes
+and statistics may repeat expensive source reads.
+
+Settings/profile changes are versioned so application workers discard stale source connection
+configuration and related cache keys. An App Admin can see the active source and its health status
+in the module and existing health view.
 
 ### Authentication Configuration
 
@@ -704,6 +793,9 @@ DATABASE_PORT=5432
 DATABASE_NAME=telephonytoolbox
 DATABASE_USER=telephonytoolbox
 DATABASE_PASSWORD=SecurePassword123!
+
+# AudioCodes CDR: deployment-only Fernet key; generated by the RHEL scripts when blank.
+CDR_SOURCE_ENCRYPTION_KEY=<Fernet key; never commit or share>
 
 # Authentication
 AUTH_MODE=entra

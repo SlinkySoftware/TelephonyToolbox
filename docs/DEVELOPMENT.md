@@ -12,6 +12,7 @@ Complete setup and development workflow for Telephony Toolbox contributors.
 6. [Common Development Tasks](#common-development-tasks)
 7. [Debugging](#debugging)
 8. [Git Workflow](#git-workflow)
+9. [AudioCodes CDR backend tests](#audiocodes-cdr-backend-tests)
 
 ## Prerequisites
 
@@ -274,6 +275,60 @@ npm --prefix frontend run build
 ```
 
 There is currently no dedicated frontend unit test script in `frontend/package.json`; build and lint checks are the authoritative frontend validation commands.
+
+### AudioCodes CDR backend tests
+
+The AudioCodes source is not needed to run local backend tests. The module defines an empty
+`audiocodes_source` connection placeholder until an App Admin configures a profile. Its test
+fixtures create temporary unmanaged `sdr`/`cdr` tables in the test database and seed them with
+test-only SQL; `ReadOnlySourceModel.save()` and source queryset write methods intentionally raise.
+Tests must not connect to or write fixture data to a production AudioCodes database.
+
+Run the module tests from the repository root:
+
+```bash
+pytest backend/audiocodes_cdr/tests
+```
+
+The suite covers source connection setup and encryption, routing/migration/write protections,
+App Admin permission enforcement, search validation/query semantics, correlation/anomalies,
+lookups, statistics and settings/audit behavior. Health tests also verify that AudioCodes source
+availability does not affect public liveness.
+
+### Local cache setup
+
+The default cache backend is Django `DatabaseCache`, shared across application processes and
+stored in the configured Telephony Toolbox application database. After the ordinary migrations,
+create its table once in that same database:
+
+```bash
+python backend/manage.py createcachetable
+```
+
+Do not run this command against the AudioCodes source. If the cache table is missing, module cache
+operations log a warning and continue uncached, which can cause repeated lookup/statistics queries.
+
+No source profile or encryption key is required for unrelated development. To exercise the module
+manually, configure `CDR_SOURCE_ENCRYPTION_KEY` in a private local `.env`, then enter a test-source
+profile through `/admin/cdr/settings` as an App Admin. Do not use production call records or
+credentials in local development. Search state includes filters in the `/admin/cdr` route query;
+avoid pasting URLs containing ANI, DNIS or Call-ID into shared tickets or chat.
+
+### AudioCodes CDR manual checks
+
+When a permitted test source is configured, verify the module in the existing app session:
+
+- App Admin can reach search, detail, statistics and settings; Standard User and anonymous API
+  requests are denied by the backend.
+- Searches require setup-time bounds, reject reversed or over-12-month ranges, return exact
+  counts, and keep pagination/sorting server-side.
+- Opening an SDR returns every associated CDR ordered by leg ID and ID; check raw `callorig`,
+  parsed tags and correlation warnings.
+- Duration preference persists after reauthentication; timestamps render in Australia/Sydney.
+- Settings updates use CSRF, persist no plaintext password, and create the existing
+  `cdr.settings.updated` audit event.
+- With the source disconnected, the module reports unavailable while the rest of the application
+  and public liveness remain usable.
 
 ### Manual Testing Checklist
 

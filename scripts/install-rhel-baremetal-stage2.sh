@@ -65,10 +65,11 @@ Next steps:
 1. Edit $ENV_FILE with production database, auth, and CUCM values.
 2. Bootstrap the first local App Admin:
    sudo -u $APP_USER -H bash -lc "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py bootstrap_local_app_admin --email admin@example.com --display-name 'App Admin' --password 'ChangeMeNow!'"
-3. If you changed database settings, rerun migrations:
-   sudo -u $APP_USER -H bash -lc "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py migrate --noinput"
+3. If you changed database settings, rerun migrations and create the cache table:
+   sudo -u $APP_USER -H bash -lc "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py migrate --noinput && '$VENV_DIR/bin/python' manage.py createcachetable"
 4. Restart the backend after environment changes:
    sudo systemctl restart $SYSTEMD_SERVICE_NAME
+5. Back up CDR_SOURCE_ENCRYPTION_KEY from $ENV_FILE separately from database backups.
 
 Gunicorn service status after install: $( [[ "$gunicorn_started" -eq 1 ]] && echo started || echo review-required )
 EOF

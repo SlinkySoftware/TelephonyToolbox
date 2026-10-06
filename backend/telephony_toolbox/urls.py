@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/', include('branding.urls')),
     path('api/', include('diversions.urls')),
     path('api/', include('health.urls')),
+    path('api/', include('audiocodes_cdr.urls')),
 ]

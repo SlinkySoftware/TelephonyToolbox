@@ -63,3 +63,17 @@ def test_healthcheck_returns_503_on_unexpected_cucm_error(api_client, db, monkey
 
     assert response.status_code == 503
     assert response.json()['checks']['cucm']['status'] == 'failure'
+
+
+def test_healthcheck_ignores_audiocodes_source_status(api_client, db, monkeypatch, healthy_cucm_client):
+    monkeypatch.setattr('health.services.get_cucm_client', lambda: healthy_cucm_client)
+
+    def failing_probe():
+        raise AssertionError('liveness must not probe the AudioCodes source')
+
+    monkeypatch.setattr('health.services.probe_source', failing_probe)
+
+    response = api_client.get('/api/healthcheck')
+
+    assert response.status_code == 200
+    assert set(response.json()['checks']) == {'database', 'cucm'}

@@ -22,6 +22,8 @@ APP_HOSTNAME="${APP_HOSTNAME:-}"
 BACKEND_HOST="${BACKEND_HOST:-127.0.0.1}"
 BACKEND_PORT="${BACKEND_PORT:-8010}"
 BACKEND_BIND="${BACKEND_HOST}:${BACKEND_PORT}"
+# Must exceed two sequential 60-second AudioCodes source statements (exact count + page).
+BACKEND_REQUEST_TIMEOUT="${BACKEND_REQUEST_TIMEOUT:-150}"
 NGINX_USER="${NGINX_USER:-nginx}"
 SYSTEMD_SERVICE_NAME="${SYSTEMD_SERVICE_NAME:-telephonytoolbox-gunicorn.service}"
 SYSTEMD_SERVICE_PATH="${SYSTEMD_SERVICE_PATH:-/etc/systemd/system/${SYSTEMD_SERVICE_NAME}}"
@@ -291,6 +293,11 @@ generate_secret() {
   openssl rand -base64 48 | tr -d '\n'
 }
 
+# Fernet key: URL-safe base64 of 32 random bytes.
+generate_fernet_key() {
+  openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n'
+}
+
 ensure_env_dir() {
   mkdir -p "$ENV_DIR"
   chmod 750 "$ENV_DIR"
@@ -319,6 +326,21 @@ upsert_env_key() {
   else
     printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
   fi
+}
+
+ensure_cdr_source_encryption_key() {
+  local value
+
+  # Never replace an existing key: credentials encrypted with it would become unreadable.
+  while IFS= read -r value; do
+    value="$(trim_value "$(strip_outer_quotes "$(trim_value "$value")")")"
+    if [[ -n "$value" ]]; then
+      return
+    fi
+  done < <(sed -n 's/^CDR_SOURCE_ENCRYPTION_KEY=//p' "$ENV_FILE")
+
+  log "Generating CDR_SOURCE_ENCRYPTION_KEY in $ENV_FILE; back it up separately from the database"
+  upsert_env_key "CDR_SOURCE_ENCRYPTION_KEY" "$(generate_fernet_key)"
 }
 
 write_backend_env() {
@@ -373,6 +395,11 @@ LDAP_USER_EMAIL_ATTRIBUTE=mail
 LDAP_USER_DISPLAY_NAME_ATTRIBUTE=displayName
 LDAP_USER_ENABLED_ATTRIBUTE=
 LDAP_GROUP_SEARCH_FILTER=
+
+# AudioCodes CDR module: Fernet key(s) encrypting the source credential stored in the
+# application database. Generated once when blank and never overwritten. Back it up
+# separately from database backups; losing it makes stored source credentials unusable.
+CDR_SOURCE_ENCRYPTION_KEY=
 EOF
   else
     log "Existing backend environment file detected, preserving: $ENV_FILE"
@@ -408,6 +435,7 @@ EOF
     ensure_env_key "CSRF_TRUSTED_ORIGINS" "http://$APP_HOSTNAME,https://$APP_HOSTNAME"
     ensure_env_key "ENTRA_REDIRECT_URI" "https://$APP_HOSTNAME/api/auth/login/entra/callback/"
   fi
+  ensure_cdr_source_encryption_key
 
   chmod 640 "$ENV_FILE"
   chown root:"$APP_GROUP" "$ENV_FILE"
@@ -506,7 +534,7 @@ Group=$APP_GROUP
 WorkingDirectory=$BACKEND_DIR
 EnvironmentFile=$ENV_FILE
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$VENV_DIR/bin/gunicorn telephony_toolbox.wsgi:application --workers 4 --worker-class sync --max-requests 1000 --max-requests-jitter 100 --timeout 60 --bind $BACKEND_BIND --access-logfile $LOG_DIR/gunicorn-access.log --error-logfile $LOG_DIR/application.log --capture-output --log-level info
+ExecStart=$VENV_DIR/bin/gunicorn telephony_toolbox.wsgi:application --workers 4 --worker-class gthread --threads 4 --max-requests 1000 --max-requests-jitter 100 --timeout $BACKEND_REQUEST_TIMEOUT --bind $BACKEND_BIND --access-logfile $LOG_DIR/gunicorn-access.log --logger-class telephony_toolbox.gunicorn_logging.RedactingLogger --error-logfile $LOG_DIR/application.log --capture-output --log-level info
 Restart=always
 RestartSec=5
 UMask=0007
@@ -540,6 +568,11 @@ ensure_nginx_sites_include() {
 
 write_nginx_site() {
   local backup_path=""
+  local log_id
+
+  # map/log_format names are global to nginx's http context, so key them to this site.
+  log_id="${NGINX_SITE_NAME%.conf}"
+  log_id="${log_id//[^A-Za-z0-9_]/_}"
 
   log "Writing nginx site configuration: $NGINX_SITE_AVAILABLE_PATH"
   install -d -m 755 "$NGINX_SITES_AVAILABLE_DIR" "$NGINX_SITES_ENABLED_DIR"
@@ -554,6 +587,22 @@ write_nginx_site() {
   fi
 
   cat > "$NGINX_SITE_AVAILABLE_PATH" <<EOF
+# AudioCodes CDR search values (ANI/DNIS/Call-ID) travel in query strings; keep them out of
+# the access log. Otherwise identical to the built-in "combined" format.
+map \$request_uri \$${log_id}_log_request_uri {
+    default \$request_uri;
+    "~^(/(?:api/)?admin/cdr[^?]*)\?" \$1;
+}
+
+map \$http_referer \$${log_id}_log_referer {
+    default \$http_referer;
+    "~^([a-zA-Z][a-zA-Z0-9+.-]*://[^/?#]+)?(/(?:api/)?admin/cdr[^?#]*)[?#]" \$1\$2;
+}
+
+log_format ${log_id}_redacted '\$remote_addr - \$remote_user [\$time_local] '
+    '"\$request_method \$${log_id}_log_request_uri \$server_protocol" \$status \$body_bytes_sent '
+    '"\$${log_id}_log_referer" "\$http_user_agent"';
+
 server {
     listen 80;
     server_name $APP_HOSTNAME;
@@ -578,6 +627,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_read_timeout ${BACKEND_REQUEST_TIMEOUT}s;
     }
 
     location / {
@@ -588,7 +638,7 @@ server {
         deny all;
     }
 
-    access_log $LOG_DIR/nginx-access.log;
+    access_log $LOG_DIR/nginx-access.log ${log_id}_redacted;
     error_log $LOG_DIR/nginx-error.log;
 }
 EOF
@@ -653,7 +703,10 @@ ensure_selinux_contexts() {
 
 run_migrations() {
   log "Running Django migrations"
-  run_as_app_user "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py migrate --noinput"
+  run_as_app_user "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py migrate --noinput" || return
+
+  log "Ensuring the Django cache table exists in the application database"
+  run_as_app_user "set -a && source '$ENV_FILE' && set +a && cd '$BACKEND_DIR' && '$VENV_DIR/bin/python' manage.py createcachetable"
 }
 
 run_django_check() {

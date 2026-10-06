@@ -16,6 +16,7 @@ It is designed to be extensible so that if core telephony platforms are later mo
 - **Flexible Authentication**: Support for Entra (OIDC), LDAP, or local user authentication with CSRF protection
 - **Audit Logging**: Complete audit trail with 90-day retention for compliance
 - **CUCM Integration**: Uses Cisco AXL API with support for CUCM versions 8.0–14
+- **AudioCodes CDR Analysis**: App Admin-only, read-only search and analysis of SDR sessions and associated CDR legs, using a separately configured AudioCodes PostgreSQL source
 - **Responsive UI**: Quasar Vue 3 frontend with admin dashboards for user and group management
 - **Graceful Degradation**: Allows cached state viewing when CUCM is unavailable; blocks edits
 
@@ -36,6 +37,9 @@ It is designed to be extensible so that if core telephony platforms are later mo
 - [AUTHENTICATION.md](docs/AUTHENTICATION.md) — Authentication flows and identity provider setup
 - [DEVELOPMENT.md](docs/DEVELOPMENT.md) — Local development setup and testing
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md) — Production deployment on RHEL 9 with nginx and Gunicorn
+- [audiocodes-cdr-manager-specification.md](docs/audiocodes-cdr-manager-specification.md) — AudioCodes CDR module requirements and behaviour
+- [AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) — Implementation status, confirmed decisions, and known implementation differences
+- [AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md](docs/AUDIOCODES_CDR_INDEX_RECOMMENDATIONS.md) — DBA-only source index recommendations; not applied by the application
 
 ## Quick Start: Local Development
 
@@ -111,12 +115,19 @@ npm --prefix frontend run lint:check
 npm --prefix frontend run build
 ```
 
+AudioCodes backend tests use isolated unmanaged-table fixtures and do not require the live source:
+
+```bash
+pytest backend/audiocodes_cdr/tests
+```
+
 ## User Roles and Permissions
 
 | Role | Capabilities |
 |------|--------------|
 | **Standard User** | View assigned diversions, update CFA destinations (when CUCM available), audit access |
 | **App Admin** | Full user and group management, create/edit/delete diversions, access all groups' diversions, export audit logs, health monitoring |
+| **App Admin** | Full user and group management, create/edit/delete diversions, access all groups' diversions, export audit logs, health monitoring, read-only AudioCodes SDR/CDR search and analysis |
 
 ## Destination Validation
 
@@ -152,6 +163,8 @@ backend/               # Django REST Framework backend
   access_groups/      # Group definitions and memberships
   diversions/         # Diversion CRUD and update operations
   audit/              # Audit event logging and export
+	audiocodes_cdr/     # Read-only AudioCodes SDR/CDR integration, search, stats and settings
+	audiocodes_cdr/     # Read-only AudioCodes SDR/CDR integration, search, stats and settings
   cucm/               # CISCO AXL client and schemas
   dialplan/           # Phone number validation and normalization
   health/             # System health endpoints
@@ -190,9 +203,28 @@ wsdl/                 # Versioned CISCO AXL WSDL schemas
 
 For more details, see [DEVELOPMENT.md](docs/DEVELOPMENT.md) and [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-- Backend checks: `.venv/bin/python backend/manage.py check`
-- Backend tests: `.venv/bin/pytest -q`
-- Frontend build: `npm --prefix frontend run build`
+## AudioCodes CDR module
+
+App Admins can open **AudioCodes CDR** from the existing application navigation. The module is
+served by the same Quasar SPA, Django API, session, CSRF configuration, Gunicorn service and
+deployment as the rest of Telephony Toolbox. It has no separate login, service, application
+database, or source-data copy. Its SPA pages are under `/admin/cdr`; its API is under
+`/api/admin/cdr/`.
+
+The application database stores module settings and user display preferences. SDR and CDR rows
+are queried live from the selected external AudioCodes PostgreSQL source using unmanaged models,
+a guarded read-only connection, and a PostgreSQL account that must be provisioned with `SELECT`
+access only. Source profile credentials are encrypted in the application database using the
+deployment-only `CDR_SOURCE_ENCRYPTION_KEY`. App Admins configure profiles and module settings in
+the in-app settings page; a read replica is selected by default and source failover is never
+automatic.
+
+Before production use, complete the AudioCodes source provisioning steps in
+[DEPLOYMENT.md](docs/DEPLOYMENT.md). The RHEL install/upgrade scripts generate the encryption key
+when it is blank (never overwriting an existing key), create the application cache table, align
+Gunicorn/Nginx request timeouts with the source statement timeout, and redact CDR query strings
+from Gunicorn and Nginx access logs. See the
+[implementation checklist](docs/AUDIOCODES_CDR_IMPLEMENTATION_CHECKLIST.md) for status.
 
 ## Install and Upgrade Scripts
 

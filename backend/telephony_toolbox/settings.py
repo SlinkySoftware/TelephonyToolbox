@@ -45,6 +45,10 @@ CUCM_STATUS_CACHE_SECONDS = env_int('CUCM_STATUS_CACHE_SECONDS', 10)
 
 AUDIT_RETENTION_DAYS = env_int('AUDIT_RETENTION_DAYS', 90)
 
+# Comma-separated Fernet keys used to encrypt the AudioCodes CDR source credential stored in
+# the application database. The first key encrypts; all keys decrypt (rotation).
+CDR_SOURCE_ENCRYPTION_KEY = env_str('CDR_SOURCE_ENCRYPTION_KEY', '')
+
 # Optional absolute paths to branding overrides. When unset (the default) each
 # asset is served as a blank transparent image. Files are served at runtime via
 # /api/branding/<slug>/ so they work behind the Quasar dev proxy and nginx alike.
@@ -98,6 +102,7 @@ INSTALLED_APPS = [
     'dialplan.apps.DialplanConfig',
     'diversions.apps.DiversionsConfig',
     'health.apps.HealthConfig',
+    'audiocodes_cdr.apps.AudiocodesCdrConfig',
 ]
 
 MIDDLEWARE = [
@@ -161,6 +166,27 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# Read-only AudioCodes SDR/CDR source. Populated at runtime from the active source profile
+# stored in the application database; never migrated, never written.
+DATABASES['audiocodes_source'] = {
+    'ENGINE': 'django.db.backends.postgresql',
+    'NAME': '',
+    'USER': '',
+    'PASSWORD': '',
+    'HOST': '',
+    'PORT': '',
+    'TEST': {'MIRROR': 'default'},
+}
+DATABASE_ROUTERS = ['audiocodes_cdr.routers.AudioCodesSourceRouter']
+
+# Shared across gunicorn workers; create the table with `manage.py createcachetable`.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'telephony_toolbox_cache',
+    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

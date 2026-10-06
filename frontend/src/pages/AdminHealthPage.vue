@@ -30,6 +30,16 @@ SPDX-License-Identifier: GPL-3.0-only
         <div class="metric-value">{{ health.auth.status }}</div>
         <div class="muted-copy">Mode {{ health.auth.mode }}</div>
       </div>
+      <div v-if="health.audiocodes_cdr" class="card-panel metric-card">
+        <div class="muted-copy">AudioCodes CDR source</div>
+        <div class="metric-value">{{ health.audiocodes_cdr.status }}</div>
+        <div v-if="health.audiocodes_cdr.active_source" class="muted-copy">
+          Active source {{ health.audiocodes_cdr.active_source }} (read-only)
+        </div>
+        <div v-if="health.audiocodes_cdr.message" class="muted-copy">
+          {{ health.audiocodes_cdr.message }}
+        </div>
+      </div>
     </div>
 
     <section v-if="health" class="status-panel q-pa-lg">

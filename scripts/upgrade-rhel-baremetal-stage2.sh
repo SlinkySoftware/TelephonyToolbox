@@ -49,7 +49,7 @@ Executed steps:
 3. Ensured ownership, nginx group access, and SELinux contexts.
 4. Reinstalled backend and frontend dependencies.
 5. Rebuilt the Quasar SPA and refreshed nginx/systemd configuration.
-6. Ran Django migrations and system checks.
+6. Ran Django migrations, ensured the cache table exists, and ran system checks.
 7. Restarted $SYSTEMD_SERVICE_NAME on $BACKEND_BIND.
 
 EOF

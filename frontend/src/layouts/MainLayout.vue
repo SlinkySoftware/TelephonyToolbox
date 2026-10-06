@@ -65,7 +65,7 @@ SPDX-License-Identifier: GPL-3.0-only
           :key="item.to"
           clickable
           :to="item.to"
-          exact
+          :exact="item.exact !== false"
           class="nav-item"
         >
           <q-item-section avatar>
@@ -132,6 +132,14 @@ const adminLinks = computed(() => {
       label: 'Audit Log',
       caption: 'Export platform operational history',
       icon: 'history_edu',
+    },
+    {
+      to: '/admin/cdr',
+      label: 'AudioCodes CDR',
+      caption: 'Search sessions and call statistics',
+      icon: 'manage_search',
+      // Stay highlighted on the session, statistics and settings child pages.
+      exact: false,
     },
     {
       to: '/admin/health',

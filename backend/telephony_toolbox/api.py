@@ -3,10 +3,15 @@
 
 import logging
 
+from django.db import DatabaseError
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 
 logger = logging.getLogger('telephony_toolbox.api')
+
+CDR_API_PREFIX = '/api/admin/cdr/'
 
 
 def api_exception_handler(exc, context):
@@ -16,6 +21,23 @@ def api_exception_handler(exc, context):
     request_method = getattr(request, 'method', None)
     request_path = getattr(request, 'path', None)
     view_name = view.__class__.__name__ if view else None
+
+    if response is None and isinstance(exc, DatabaseError) and (request_path or '').startswith(CDR_API_PREFIX):
+        # Safety net: never surface raw database errors (hosts, SQL) from the CDR module.
+        logger.error(
+            'Unhandled database error method=%s path=%s view=%s error=%s',
+            request_method,
+            request_path,
+            view_name,
+            type(exc).__name__,
+        )
+        return Response(
+            {
+                'detail': 'The AudioCodes CDR source database is currently unavailable.',
+                'error_code': 'source_unavailable',
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     if response is None:
         logger.exception(
