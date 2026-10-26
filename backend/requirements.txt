@@ -1,5 +1,5 @@
 Django==6.0.8
-djangorestframework==3.17.2
+djangorestframework==3.18.2
 django-filter==25.2
 authlib==1.7.2
 cryptography==50.0.0
